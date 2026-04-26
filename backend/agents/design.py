@@ -130,15 +130,21 @@ def _generate_heuristic(
     try:
         robot_arch, compiled_parts = compile_robot(prompt)
         logger.info("Robot compiler: %s (%s, %d parts)", robot_arch.robot_class, robot_arch.concept_parse.morphology, len(compiled_parts))
-
-        urdf_path, parametric_parts, topology = generate_urdf_from_compiled_parts(
-            prompt, compiled_parts, robot_arch.robot_class,
-        )
-        if urdf_path:
-            logger.info("Design agent: procedural URDF generated at %s", urdf_path)
     except Exception:
-        logger.warning("Procedural compilation failed, falling back to archetype", exc_info=True)
+        logger.warning("Robot compilation failed, falling back to archetype", exc_info=True)
         robot_arch = None
+
+    if robot_arch and compiled_parts:
+        try:
+            urdf_path, parametric_parts, topology = generate_urdf_from_compiled_parts(
+                prompt, compiled_parts, robot_arch.robot_class,
+            )
+            if urdf_path:
+                logger.info("Design agent: procedural URDF generated at %s", urdf_path)
+        except Exception:
+            logger.warning("URDF generation failed after successful compilation", exc_info=True)
+
+    if not urdf_path:
         try:
             urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
         except Exception:
