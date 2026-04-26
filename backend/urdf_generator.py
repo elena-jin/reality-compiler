@@ -177,6 +177,152 @@ def _tube(r_outer=0.008, r_inner=0.006, h=0.060):
 
 
 # ---------------------------------------------------------------------------
+# Character-specific mesh generators
+# ---------------------------------------------------------------------------
+
+def _baymax_torso(w=0.18, h=0.24, d=0.16):
+    """Baymax inflatable torso: large oval balloon shape."""
+    torso = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    torso.apply_scale([w / 2, h / 2, d / 2])
+    belly_bulge = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    belly_bulge.apply_scale([w * 0.45, h * 0.35, d * 0.42])
+    belly_bulge.apply_translation([0, -h * 0.05, d * 0.08])
+    return _concat([torso, belly_bulge])
+
+
+def _baymax_head(w=0.10, h=0.08, d=0.09):
+    """Baymax head: wide oval with connected dot-eyes and line mouth."""
+    head = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    head.apply_scale([w / 2, h / 2, d / 2])
+    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=0.008)
+    eye_l.apply_translation([-w * 0.15, h * 0.05, d / 2 - 0.005])
+    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=0.008)
+    eye_r.apply_translation([w * 0.15, h * 0.05, d / 2 - 0.005])
+    bridge = trimesh.creation.box((w * 0.15, 0.003, 0.003))
+    bridge.apply_translation([0, h * 0.05, d / 2 - 0.003])
+    return _concat([head, eye_l, eye_r, bridge])
+
+
+def _baymax_arm(w=0.06, h=0.16, d=0.06):
+    """Baymax inflatable arm: soft cylindrical balloon."""
+    arm = trimesh.creation.capsule(height=h - w, radius=w / 2)
+    arm.apply_transform(trimesh.transformations.rotation_matrix(0, [0, 0, 1]))
+    return arm
+
+
+def _baymax_hand(w=0.05, h=0.04, d=0.05):
+    """Baymax round hand/palm."""
+    palm = trimesh.creation.icosphere(subdivisions=2, radius=w / 2)
+    palm.apply_scale([1.0, h / w, 1.0])
+    for i in range(4):
+        finger = trimesh.creation.capsule(height=0.02, radius=0.006)
+        angle = -0.4 + i * 0.27
+        finger.apply_translation([math.cos(angle) * w * 0.35, 0.01, math.sin(angle) * w * 0.35])
+        palm = _concat([palm, finger])
+    thumb = trimesh.creation.capsule(height=0.015, radius=0.006)
+    thumb.apply_translation([-w * 0.35, 0, d * 0.2])
+    return _concat([palm, thumb])
+
+
+def _baymax_leg(w=0.07, h=0.10, d=0.07):
+    """Baymax stubby inflatable leg."""
+    leg = trimesh.creation.capsule(height=h - w, radius=w / 2)
+    return leg
+
+
+def _baymax_foot(w=0.06, h=0.03, d=0.08):
+    """Baymax rounded foot."""
+    foot = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+    foot.apply_scale([w / 2, h / 2, d / 2])
+    return foot
+
+
+def _labubu_body_upper(w=0.06, h=0.055, d=0.05):
+    """Labubu upper body: rounded box (head/face block)."""
+    body = trimesh.creation.box((w, h, d))
+    for edge_x in [-1, 1]:
+        for edge_y in [-1, 1]:
+            for edge_z in [-1, 1]:
+                bevel = trimesh.creation.icosphere(subdivisions=1, radius=0.004)
+                bevel.apply_translation([edge_x * (w / 2 - 0.004), edge_y * (h / 2 - 0.004), edge_z * (d / 2 - 0.004)])
+                body = _concat([body, bevel])
+    eye_l = trimesh.creation.icosphere(subdivisions=1, radius=0.006)
+    eye_l.apply_translation([-0.012, 0.002, d / 2])
+    eye_r = trimesh.creation.icosphere(subdivisions=1, radius=0.006)
+    eye_r.apply_translation([0.012, 0.002, d / 2])
+    teeth_parts = []
+    for i in range(5):
+        tooth = trimesh.creation.box((0.006, 0.004, 0.003))
+        tooth.apply_translation([-0.015 + i * 0.0075, -0.012, d / 2])
+        teeth_parts.append(tooth)
+    return _concat([body, eye_l, eye_r] + teeth_parts)
+
+
+def _labubu_body_lower(w=0.06, h=0.05, d=0.05):
+    """Labubu lower body block with belly decal area."""
+    body = trimesh.creation.box((w, h, d))
+    for edge_x in [-1, 1]:
+        for edge_y in [-1, 1]:
+            for edge_z in [-1, 1]:
+                bevel = trimesh.creation.icosphere(subdivisions=1, radius=0.004)
+                bevel.apply_translation([edge_x * (w / 2 - 0.004), edge_y * (h / 2 - 0.004), edge_z * (d / 2 - 0.004)])
+                body = _concat([body, bevel])
+    belly_panel = trimesh.creation.box((w * 0.5, h * 0.4, 0.002))
+    belly_panel.apply_translation([0, -h * 0.05, d / 2 + 0.001])
+    return _concat([body, belly_panel])
+
+
+def _labubu_ear(w=0.012, h=0.04, d=0.005):
+    """Labubu tall bunny ear."""
+    ear = trimesh.creation.box((w, h, d))
+    tip = trimesh.creation.icosphere(subdivisions=1, radius=w / 2)
+    tip.apply_translation([0, h / 2, 0])
+    return _concat([ear, tip])
+
+
+def _labubu_foot(w=0.025, h=0.015, d=0.03):
+    """Labubu blocky red foot."""
+    foot = trimesh.creation.box((w, h, d))
+    toe = trimesh.creation.box((w * 0.9, h * 0.5, 0.005))
+    toe.apply_translation([0, -h * 0.25, d / 2 + 0.0025])
+    return _concat([foot, toe])
+
+
+def _labubu_arm(w=0.012, h=0.03, d=0.01):
+    """Labubu small stubby arm."""
+    arm = trimesh.creation.capsule(height=h - w, radius=w / 2)
+    return arm
+
+
+def _labubu_key(w=0.02, h=0.025, d=0.004):
+    """Labubu wind-up key on side."""
+    shaft = trimesh.creation.cylinder(radius=0.003, height=0.015, sections=16)
+    shaft.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 0, 1]))
+    handle_outer = trimesh.creation.cylinder(radius=0.01, height=d, sections=24)
+    handle_inner = trimesh.creation.cylinder(radius=0.006, height=d + 0.001, sections=24)
+    handle_outer.apply_translation([0.015, 0, 0])
+    handle_inner.apply_translation([0.015, 0, 0])
+    return _concat([shaft, handle_outer, handle_inner])
+
+
+# Character-specific part type mappings
+_CHARACTER_PARTS = {
+    "baymax_torso": (_baymax_torso, "baymax_white", 1.0),
+    "baymax_head": (_baymax_head, "baymax_white", 1.0),
+    "baymax_arm": (_baymax_arm, "baymax_white", 1.0),
+    "baymax_hand": (_baymax_hand, "baymax_white", 1.0),
+    "baymax_leg": (_baymax_leg, "baymax_white", 1.0),
+    "baymax_foot": (_baymax_foot, "baymax_white", 1.0),
+    "labubu_body_upper": (_labubu_body_upper, "labubu_purple", 1.0),
+    "labubu_body_lower": (_labubu_body_lower, "labubu_purple", 1.0),
+    "labubu_ear": (_labubu_ear, "labubu_purple", 1.0),
+    "labubu_foot": (_labubu_foot, "labubu_red", 1.0),
+    "labubu_arm": (_labubu_arm, "labubu_red", 1.0),
+    "labubu_key": (_labubu_key, "labubu_gold", 1.0),
+}
+
+
+# ---------------------------------------------------------------------------
 # Component library with engineering specs
 # Maps categories to (generator_fn, material_name, scale, parametric_spec)
 # ---------------------------------------------------------------------------
@@ -219,6 +365,12 @@ MATERIAL_DEFS = {
     "clear": (0.80, 0.80, 0.82),
     "red_wire": (0.70, 0.10, 0.10),
     "yellow": (0.80, 0.70, 0.10),
+    "baymax_white": (0.95, 0.95, 0.97),
+    "baymax_eye": (0.05, 0.05, 0.05),
+    "labubu_purple": (0.68, 0.62, 0.82),
+    "labubu_red": (0.85, 0.15, 0.12),
+    "labubu_gold": (0.85, 0.65, 0.10),
+    "labubu_face": (0.90, 0.90, 0.92),
 }
 
 # Engineering material mapping: visual name → real spec
@@ -650,7 +802,10 @@ def _build_urdf(model_id: str, parts: list, part_overrides: dict | None = None) 
     y_offset = 0.0
 
     for i, (part_name, part_type, joint_type, joint_params) in enumerate(parts):
-        _, mat_name, _ = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
+        if part_type in _CHARACTER_PARTS:
+            _, mat_name, _ = _CHARACTER_PARTS[part_type]
+        else:
+            _, mat_name, _ = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
         link_name = f"{part_name}_link"
         override = (part_overrides or {}).get(part_name)
         if override:
@@ -705,9 +860,9 @@ def _build_urdf(model_id: str, parts: list, part_overrides: dict | None = None) 
                 lines.append(f'    <origin xyz="-0.04 -0.01 0" rpy="1.5708 0 0"/>')
             elif "wheel_r" in part_name:
                 lines.append(f'    <origin xyz="0.04 -0.01 0" rpy="1.5708 0 0"/>')
-            elif "finger" in part_name and "l" in part_name:
+            elif "finger" in part_name and ("left" in part_name or part_name.endswith("_l")):
                 lines.append(f'    <origin xyz="-0.015 0.010 0" rpy="0 0 0.1"/>')
-            elif "finger" in part_name and "r" in part_name:
+            elif "finger" in part_name and ("right" in part_name or part_name.endswith("_r")):
                 lines.append(f'    <origin xyz="0.015 0.010 0" rpy="0 0 -0.1"/>')
             else:
                 lines.append(f'    <origin xyz="0 {y_step:.4f} 0" rpy="0 0 0"/>')
@@ -754,7 +909,8 @@ def generate_urdf_from_compiled_parts(
     compiled_parts: list of dicts from robot_compiler, each with:
         name, type, joint, dims_mm, material, function, mass_g, ...
     """
-    prompt_hash = hashlib.md5(prompt.encode()).hexdigest()[:8]
+    cache_key = f"{prompt}_v2"
+    prompt_hash = hashlib.md5(cache_key.encode()).hexdigest()[:8]
     model_id = f"compiled_{robot_class}_{prompt_hash}".replace(" ", "_").replace("-", "_").lower()
     model_dir = MODELS_DIR / model_id / "meshes"
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -814,9 +970,16 @@ def generate_urdf_from_compiled_parts(
     # Generate STL meshes using compiled dimensions
     for p in compiled_parts:
         part_type = p["type"]
-        gen_fn, _, scale = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
         dims = p.get("dims_mm", None)
-        if dims and part_type == "servo":
+
+        # Character-specific parts take priority
+        if part_type in _CHARACTER_PARTS:
+            char_fn, _, _ = _CHARACTER_PARTS[part_type]
+            if dims:
+                mesh = char_fn(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+            else:
+                mesh = char_fn()
+        elif dims and part_type == "servo":
             mesh = _servo_motor(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
         elif dims and part_type == "link":
             mesh = _arm_link(length=dims[1] / 1000, w=dims[0] / 1000, d=dims[2] / 1000)
@@ -843,6 +1006,7 @@ def generate_urdf_from_compiled_parts(
         elif dims and part_type == "gear":
             mesh = _gear(r=dims[0] / 2000, h=dims[1] / 1000)
         else:
+            gen_fn, _, scale = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
             mesh = gen_fn()
             if scale != 1.0:
                 mesh.apply_scale(scale)

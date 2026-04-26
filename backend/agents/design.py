@@ -114,7 +114,7 @@ def _generate_heuristic(
     prompt: str,
     previous_model: Optional[ConceptModel],
     iteration_command: Optional[str],
-) -> ConceptModel:
+) -> tuple[ConceptModel, "RobotArchitecture | None"]:
     lp = prompt.lower()
 
     if previous_model and iteration_command:

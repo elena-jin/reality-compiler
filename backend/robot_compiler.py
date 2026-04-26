@@ -41,7 +41,7 @@ logger = logging.getLogger("reality_compiler.robot_compiler")
 
 _NAMED_CONCEPTS = {
     # Healthcare / companion humanoids
-    "baymax": {"morphology": "humanoid", "function_role": "medical", "visual_style": "soft", "base_archetype": "Soft inflatable humanoid healthcare robot", "style_modifiers": ["soft", "round_body", "inflatable_vinyl", "white", "friendly_face"]},
+    "baymax": {"morphology": "humanoid", "function_role": "medical", "visual_style": "soft", "character": "baymax", "base_archetype": "Soft inflatable humanoid healthcare robot", "style_modifiers": ["soft", "round_body", "inflatable_vinyl", "white", "friendly_face"]},
     "pepper": {"morphology": "humanoid", "function_role": "companion", "visual_style": "sleek", "base_archetype": "Social humanoid companion robot", "style_modifiers": ["sleek", "white_plastic", "tablet_chest", "wheeled_base"]},
     "nao": {"morphology": "humanoid", "function_role": "education", "visual_style": "sleek", "base_archetype": "Small bipedal education robot", "style_modifiers": ["compact", "colorful", "walking_biped"]},
     "atlas": {"morphology": "humanoid", "function_role": "exploration", "visual_style": "rugged", "base_archetype": "Heavy-duty bipedal dynamic robot", "style_modifiers": ["rugged", "hydraulic", "high_mobility"]},
@@ -62,12 +62,15 @@ _NAMED_CONCEPTS = {
     # Aerials
     "racing drone": {"morphology": "aerial", "function_role": "filming", "visual_style": "sleek", "base_archetype": "High-speed racing quadcopter", "style_modifiers": ["sleek", "carbon_fiber", "lightweight"]},
 
+    # Toy / character robots
+    "labubu": {"morphology": "humanoid", "function_role": "companion", "visual_style": "soft", "character": "labubu", "base_archetype": "Labubu wind-up toy robot rabbit", "style_modifiers": ["boxy", "bunny_ears", "wind_up_key", "purple", "zigzag_teeth"]},
+
     # Soft robots
     "soft gripper": {"morphology": "soft_body", "function_role": "industrial", "visual_style": "soft", "base_archetype": "Pneumatic soft-body gripper", "style_modifiers": ["soft", "silicone", "pneumatic_actuation"]},
 }
 
 _MORPHOLOGY_KEYWORDS = {
-    "humanoid": ["humanoid", "biped", "human", "android", "baymax", "nao", "pepper", "atlas", "walking robot"],
+    "humanoid": ["humanoid", "biped", "human", "android", "baymax", "nao", "pepper", "atlas", "walking robot", "labubu"],
     "wheeled": ["wheeled", "rover", "car", "mobile", "vehicle", "tank", "line follower"],
     "quadruped": ["quadruped", "dog", "spot", "four-leg", "4-leg", "boston dynamics", "robot dog", "puppy"],
     "hexapod": ["hexapod", "spider", "six-leg", "6-leg", "insect", "ant"],
@@ -387,6 +390,61 @@ def _soft_body_graph(rng: random.Random, concept: ConceptParse):
     return parts, f"SoftGripper-{chamber_count}ch"
 
 
+def _baymax_graph(rng: random.Random, concept: ConceptParse):
+    """Baymax-specific graph: inflatable balloon humanoid healthcare robot."""
+    torso_w = _seeded_range(rng, 180, 20)
+    torso_h = _seeded_range(rng, 240, 30)
+    head_w = _seeded_range(rng, 100, 10)
+    arm_h = _seeded_range(rng, 160, 20)
+    leg_h = _seeded_range(rng, 100, 15)
+
+    parts = [
+        {"name": "hip_base", "type": "baymax_foot", "joint": "fixed", "dims_mm": (80, 30, 100), "material": "Inflatable vinyl", "function": "structural", "mass_g": 50},
+        {"name": "torso", "type": "baymax_torso", "joint": "revolute", "axis": "y", "lo": -0.3, "hi": 0.3, "effort": 12, "velocity": 0.5, "dims_mm": (torso_w, torso_h, torso_w * 0.9), "material": "Inflatable vinyl", "function": "structural", "mass_g": 800},
+        {"name": "head", "type": "baymax_head", "joint": "revolute", "axis": "y", "lo": -1.5, "hi": 1.5, "effort": 2, "velocity": 2.0, "dims_mm": (head_w, head_w * 0.8, head_w * 0.9), "material": "Inflatable vinyl + OLED eyes", "function": "structural", "mass_g": 120},
+        {"name": "head_camera", "type": "sensor", "joint": "revolute", "axis": "x", "lo": -0.5, "hi": 0.8, "effort": 0.5, "velocity": 1.57, "dims_mm": (30, 20, 15), "material": "ABS", "function": "sensor", "mass_g": 15},
+    ]
+
+    for side in ["left", "right"]:
+        parts.append({"name": f"{side}_shoulder_servo", "type": "servo", "joint": "fixed", "dims_mm": (40, 43, 20), "material": "ABS", "function": "actuator", "mass_g": 55})
+        parts.append({"name": f"{side}_upper_arm", "type": "baymax_arm", "joint": "revolute", "axis": "x", "lo": -1.57, "hi": 3.14, "effort": 8, "velocity": 1.05, "dims_mm": (60, arm_h, 60), "material": "Inflatable vinyl", "function": "structural", "mass_g": 100})
+        parts.append({"name": f"{side}_elbow_servo", "type": "servo", "joint": "fixed", "dims_mm": (30, 32, 16), "material": "ABS", "function": "actuator", "mass_g": 35})
+        parts.append({"name": f"{side}_forearm", "type": "baymax_arm", "joint": "revolute", "axis": "z", "lo": -2.0, "hi": 0, "effort": 5, "velocity": 1.57, "dims_mm": (55, arm_h * 0.75, 55), "material": "Inflatable vinyl", "function": "structural", "mass_g": 80})
+        parts.append({"name": f"{side}_hand", "type": "baymax_hand", "joint": "revolute", "axis": "z", "lo": -0.5, "hi": 0.8, "effort": 2, "velocity": 1.57, "dims_mm": (50, 40, 50), "material": "Inflatable vinyl", "function": "end_effector", "mass_g": 40})
+
+    for side in ["left", "right"]:
+        parts.append({"name": f"{side}_leg", "type": "baymax_leg", "joint": "revolute", "axis": "x", "lo": -0.8, "hi": 0.8, "effort": 15, "velocity": 0.8, "dims_mm": (70, leg_h, 70), "material": "Inflatable vinyl", "function": "structural", "mass_g": 150})
+        parts.append({"name": f"{side}_foot", "type": "baymax_foot", "joint": "revolute", "axis": "x", "lo": -0.3, "hi": 0.5, "effort": 8, "velocity": 1.0, "dims_mm": (60, 30, 80), "material": "Inflatable vinyl", "function": "structural", "mass_g": 50})
+
+    parts.append({"name": "controller", "type": "pcb", "joint": "fixed", "dims_mm": (60, 2, 40), "material": "FR-4", "function": "electronics", "mass_g": 15})
+    parts.append({"name": "battery", "type": "battery", "joint": "fixed", "dims_mm": (80, 25, 50), "material": "LiPo 4S", "function": "electronics", "mass_g": 200})
+
+    return parts, f"Baymax-Healthcare-{int(torso_h)}"
+
+
+def _labubu_graph(rng: random.Random, concept: ConceptParse):
+    """Labubu-specific graph: boxy wind-up toy robot rabbit."""
+    body_w = _seeded_range(rng, 60, 6)
+    upper_h = _seeded_range(rng, 55, 5)
+    lower_h = _seeded_range(rng, 50, 5)
+    ear_h = _seeded_range(rng, 40, 4)
+
+    parts = [
+        {"name": "left_foot", "type": "labubu_foot", "joint": "fixed", "dims_mm": (25, 15, 30), "material": "ABS plastic (red)", "function": "structural", "mass_g": 10},
+        {"name": "right_foot", "type": "labubu_foot", "joint": "fixed", "dims_mm": (25, 15, 30), "material": "ABS plastic (red)", "function": "structural", "mass_g": 10},
+        {"name": "body_lower", "type": "labubu_body_lower", "joint": "fixed", "dims_mm": (body_w, lower_h, body_w * 0.83), "material": "ABS plastic (purple)", "function": "structural", "mass_g": 40},
+        {"name": "body_upper", "type": "labubu_body_upper", "joint": "revolute", "axis": "y", "lo": -0.3, "hi": 0.3, "effort": 1, "velocity": 1.0, "dims_mm": (body_w, upper_h, body_w * 0.83), "material": "ABS plastic (purple)", "function": "structural", "mass_g": 45},
+        {"name": "left_ear", "type": "labubu_ear", "joint": "revolute", "axis": "x", "lo": -0.2, "hi": 0.2, "effort": 0.3, "velocity": 2.0, "dims_mm": (12, ear_h, 5), "material": "ABS plastic (purple)", "function": "structural", "mass_g": 5},
+        {"name": "right_ear", "type": "labubu_ear", "joint": "revolute", "axis": "x", "lo": -0.2, "hi": 0.2, "effort": 0.3, "velocity": 2.0, "dims_mm": (12, ear_h, 5), "material": "ABS plastic (purple)", "function": "structural", "mass_g": 5},
+        {"name": "left_arm", "type": "labubu_arm", "joint": "revolute", "axis": "z", "lo": -1.0, "hi": 1.0, "effort": 0.5, "velocity": 1.5, "dims_mm": (12, 30, 10), "material": "ABS plastic (red)", "function": "end_effector", "mass_g": 5},
+        {"name": "right_arm", "type": "labubu_arm", "joint": "revolute", "axis": "z", "lo": -1.0, "hi": 1.0, "effort": 0.5, "velocity": 1.5, "dims_mm": (12, 30, 10), "material": "ABS plastic (red)", "function": "end_effector", "mass_g": 5},
+        {"name": "wind_up_key", "type": "labubu_key", "joint": "continuous", "axis": "z", "effort": 0.2, "velocity": 6.28, "dims_mm": (20, 25, 4), "material": "Die-cast zinc alloy (gold)", "function": "actuator", "mass_g": 8},
+        {"name": "spring_motor", "type": "spring", "joint": "fixed", "dims_mm": (15, 20, 15), "material": "Spring steel", "function": "actuator", "mass_g": 12},
+    ]
+
+    return parts, f"Labubu-ToyBot-{int(body_w)}"
+
+
 _GRAPH_BUILDERS = {
     "articulated_arm": _arm_graph,
     "quadruped": _quadruped_graph,
@@ -396,6 +454,12 @@ _GRAPH_BUILDERS = {
     "wheeled": _wheeled_graph,
     "snake": _snake_graph,
     "soft_body": _soft_body_graph,
+}
+
+# Character-specific graph builders override morphology-based routing
+_CHARACTER_BUILDERS = {
+    "baymax": _baymax_graph,
+    "labubu": _labubu_graph,
 }
 
 
@@ -408,6 +472,10 @@ _PRIM_MAP = {
     "base": "box", "plate": "cylinder", "finger": "capsule", "propeller": "box",
     "wheel": "cylinder", "gear": "cylinder", "pcb": "box", "controller": "box",
     "housing": "capsule", "sensor": "sphere", "battery": "box",
+    "baymax_torso": "sphere", "baymax_head": "sphere", "baymax_arm": "capsule",
+    "baymax_hand": "sphere", "baymax_leg": "capsule", "baymax_foot": "sphere",
+    "labubu_body_upper": "box", "labubu_body_lower": "box", "labubu_ear": "box",
+    "labubu_foot": "box", "labubu_arm": "capsule", "labubu_key": "cylinder",
 }
 
 _ROLE_MAP = {
@@ -479,7 +547,13 @@ def compile_robot(prompt: str) -> tuple[RobotArchitecture, list[dict]]:
     seed = _make_seed(prompt)
     rng = random.Random(seed)
 
-    builder = _GRAPH_BUILDERS.get(concept.morphology, _arm_graph)
+    # Character-specific builders override morphology-based routing
+    named = _match_named_concept(prompt)
+    character = named.get("character") if named else None
+    if character and character in _CHARACTER_BUILDERS:
+        builder = _CHARACTER_BUILDERS[character]
+    else:
+        builder = _GRAPH_BUILDERS.get(concept.morphology, _arm_graph)
     parts, robot_class = builder(rng, concept)
 
     geometry_rules = _build_geometry_rules(parts, rng)
