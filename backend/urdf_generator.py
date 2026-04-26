@@ -181,58 +181,138 @@ def _tube(r_outer=0.008, r_inner=0.006, h=0.060):
 # ---------------------------------------------------------------------------
 
 def _baymax_torso(w=0.22, h=0.28, d=0.20):
-    """Baymax inflatable torso: massive egg/balloon shape wider at belly."""
-    # Main torso — egg shape: wider at bottom, narrower at top
-    torso_upper = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    torso_upper.apply_scale([w * 0.45, h * 0.28, d * 0.42])
-    torso_upper.apply_translation([0, h * 0.12, 0])
+    """Baymax NURBS-style pear torso with belly sag and chest port.
 
-    torso_lower = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    torso_lower.apply_scale([w * 0.52, h * 0.32, d * 0.48])
-    torso_lower.apply_translation([0, -h * 0.05, 0])
+    Spec: non-uniform scale [1.2, 1.4, 1.0], vertex density shifted to
+    bottom 30%, belly extrusion Z+0.4 at Y [1.5, 3.0].
+    """
+    # Start with high-res icosphere, apply pear deformation
+    base = trimesh.creation.icosphere(subdivisions=4, radius=1.0)
+    verts = base.vertices.copy()
 
-    # Belly bulge — extra volume at front-bottom
-    belly = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    belly.apply_scale([w * 0.48, h * 0.28, d * 0.46])
-    belly.apply_translation([0, -h * 0.12, d * 0.06])
+    # Non-uniform scale [1.2, 1.4, 1.0] mapped to dimensions
+    verts[:, 0] *= w * 0.6 * 1.2   # X: wider
+    verts[:, 1] *= h * 0.5 * 1.4   # Y: taller
+    verts[:, 2] *= d * 0.5 * 1.0   # Z: base depth
+
+    # Pear deformation: widen bottom, narrow top
+    # Shift vertex density toward bottom 30% (belly sag)
+    for i in range(len(verts)):
+        y_norm = (verts[i, 1] / (h * 0.5 * 1.4)) if (h * 0.5 * 1.4) > 0 else 0
+        # Bottom half gets wider (belly sag)
+        if y_norm < 0:
+            expansion = 1.0 + 0.35 * abs(y_norm)
+            verts[i, 0] *= expansion
+            verts[i, 2] *= expansion
+        # Top narrows (shoulder region)
+        elif y_norm > 0.3:
+            shrink = 1.0 - 0.2 * (y_norm - 0.3)
+            verts[i, 0] *= max(shrink, 0.6)
+
+        # Belly extrusion: push front vertices out at mid-to-low Y
+        y_abs = verts[i, 1]
+        y_lo, y_hi = -h * 0.25, h * 0.1
+        if y_lo <= y_abs <= y_hi and verts[i, 2] > 0:
+            frac = 1.0 - abs((y_abs - (y_lo + y_hi) / 2) / ((y_hi - y_lo) / 2))
+            verts[i, 2] += d * 0.2 * frac
+
+    base.vertices = verts
 
     # Chest access port — circular ring detail
     port_ring = trimesh.creation.annulus(r_min=0.012, r_max=0.018, height=0.003)
     port_ring.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
     port_ring.apply_translation([0, h * 0.08, d * 0.44])
 
-    return _concat([torso_upper, torso_lower, belly, port_ring])
+    return _concat([base, port_ring])
 
 
 def _baymax_head(w=0.12, h=0.07, d=0.10):
-    """Baymax head: wide flat oval with connected dot-eyes and bridge line."""
+    """Baymax head with precision facial rig.
+
+    Spec: capsule-shaped boolean slot 0.45-wide x 0.15-high (scaled),
+    two 0.15-unit eye spheres at slot terminals, bridge cylinder connecting
+    eye centers, placed at 60% head height.
+    """
     head = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
     head.apply_scale([w / 2, h / 2.2, d / 2])
 
-    # Two prominent dot-eyes
-    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=0.009)
-    eye_l.apply_translation([-w * 0.18, h * 0.08, d / 2 - 0.006])
-    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=0.009)
-    eye_r.apply_translation([w * 0.18, h * 0.08, d / 2 - 0.006])
+    # Facial slot: capsule-shaped indentation via boolean subtraction
+    slot_w = w * 0.45
+    slot_h = h * 0.15
+    slot_depth = d * 0.08
+    slot_y = h * 0.1  # 60% of head height
 
-    # Connecting bridge line between eyes
-    bridge = trimesh.creation.box((w * 0.22, 0.003, 0.003))
-    bridge.apply_translation([0, h * 0.08, d / 2 - 0.004])
+    # Create capsule-shaped slot (box + end caps)
+    slot_box = trimesh.creation.box((slot_w - slot_h, slot_h, slot_depth))
+    slot_cap_l = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=16)
+    slot_cap_l.apply_translation([-(slot_w - slot_h) / 2, 0, 0])
+    slot_cap_r = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=16)
+    slot_cap_r.apply_translation([(slot_w - slot_h) / 2, 0, 0])
+    slot_cutter = _concat([slot_box, slot_cap_l, slot_cap_r])
+    slot_cutter.apply_translation([0, slot_y, d / 2 - slot_depth / 2 + 0.002])
+
+    try:
+        head = head.difference(slot_cutter)
+    except Exception:
+        pass  # boolean ops can fail; continue with non-subtracted head
+
+    # Eye spheres inside slot terminals (scaled 0.15 units → proportional)
+    eye_r_size = min(w, h) * 0.15
+    eye_spacing = slot_w * 0.38
+    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=eye_r_size)
+    eye_l.apply_translation([-eye_spacing, slot_y, d / 2 - slot_depth * 0.3])
+    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=eye_r_size)
+    eye_r.apply_translation([eye_spacing, slot_y, d / 2 - slot_depth * 0.3])
+
+    # Bridge: flat-faced cylinder connecting eye centers
+    bridge_len = eye_spacing * 2
+    bridge = trimesh.creation.cylinder(radius=0.002, height=bridge_len, sections=8)
+    bridge.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 0, 1]))
+    bridge.apply_translation([0, slot_y, d / 2 - slot_depth * 0.3])
 
     return _concat([head, eye_l, eye_r, bridge])
 
 
-def _baymax_arm(w=0.08, h=0.18, d=0.08):
-    """Baymax inflatable arm: thick puffy balloon limb tapered at ends."""
-    # Main thick balloon section
-    arm_main = trimesh.creation.capsule(height=h * 0.6, radius=w / 2)
-    # Shoulder bulge — puffy top
-    shoulder_bulge = trimesh.creation.icosphere(subdivisions=2, radius=w * 0.55)
-    shoulder_bulge.apply_translation([0, h * 0.25, 0])
-    # Wrist taper — slightly narrower
-    wrist = trimesh.creation.capsule(height=h * 0.15, radius=w * 0.35)
-    wrist.apply_translation([0, -h * 0.32, 0])
-    return _concat([arm_main, shoulder_bulge, wrist])
+def _baymax_arm(w=0.08, h=0.18, d=0.08, is_forearm=False):
+    """Baymax limb as conical frustum (not cylinder).
+
+    Spec: conical frustums for all limbs. Forearm is 20% thicker at wrist
+    than at elbow to mimic inflatable pressure. Mesh overlap 0.05 units
+    at joint boundaries.
+    """
+    n_sections = 24
+    overlap = 0.005  # 0.05 units scaled to model size
+
+    if is_forearm:
+        # Forearm: 20% thicker at wrist end (bottom) than elbow end (top)
+        r_top = w * 0.4       # elbow end (narrower)
+        r_bot = w * 0.4 * 1.2  # wrist end (20% thicker)
+    else:
+        # Upper arm: thicker at shoulder, tapers toward elbow
+        r_top = w * 0.5       # shoulder end
+        r_bot = w * 0.38      # elbow end
+
+    # Build frustum via cylinder with vertex deformation
+    frustum = trimesh.creation.cylinder(
+        radius=1.0, height=h * 0.7 + overlap * 2, sections=n_sections,
+    )
+    verts = frustum.vertices.copy()
+    for i in range(len(verts)):
+        y_frac = (verts[i, 1] / (h * 0.35 + overlap)) * 0.5 + 0.5
+        r = r_top * (1 - y_frac) + r_bot * y_frac
+        dist = np.sqrt(verts[i, 0] ** 2 + verts[i, 2] ** 2)
+        if dist > 0:
+            verts[i, 0] *= r / dist if dist > 0.001 else r
+            verts[i, 2] *= r / dist if dist > 0.001 else r
+    frustum.vertices = verts
+
+    # Rounded end caps for soft inflatable look
+    cap_top = trimesh.creation.icosphere(subdivisions=2, radius=r_top)
+    cap_top.apply_translation([0, h * 0.35, 0])
+    cap_bot = trimesh.creation.icosphere(subdivisions=2, radius=r_bot)
+    cap_bot.apply_translation([0, -h * 0.35, 0])
+
+    return _concat([frustum, cap_top, cap_bot])
 
 
 def _baymax_hand(w=0.055, h=0.04, d=0.055):
@@ -251,17 +331,40 @@ def _baymax_hand(w=0.055, h=0.04, d=0.055):
     return _concat([palm, thumb])
 
 
-def _baymax_leg(w=0.09, h=0.12, d=0.09):
-    """Baymax thick stubby inflatable leg."""
-    # Thick upper thigh
-    thigh = trimesh.creation.capsule(height=h * 0.5, radius=w * 0.5)
-    # Lower calf — slightly narrower
-    calf = trimesh.creation.capsule(height=h * 0.35, radius=w * 0.4)
-    calf.apply_translation([0, -h * 0.35, 0])
-    # Knee bulge — smooth transition
-    knee = trimesh.creation.icosphere(subdivisions=2, radius=w * 0.42)
-    knee.apply_translation([0, -h * 0.15, 0])
-    return _concat([thigh, calf, knee])
+def _baymax_leg(w=0.09, h=0.12, d=0.09, is_lower=False):
+    """Baymax leg as conical frustum with mesh overlap at knee joint.
+
+    Spec: conical frustums, 0.05-unit mesh overlap at joints.
+    """
+    n_sections = 24
+    overlap = 0.005
+
+    if is_lower:
+        r_top = w * 0.42   # knee end
+        r_bot = w * 0.35   # ankle end (tapers down)
+    else:
+        r_top = w * 0.5    # hip end (thickest)
+        r_bot = w * 0.42   # knee end
+
+    frustum = trimesh.creation.cylinder(
+        radius=1.0, height=h * 0.7 + overlap * 2, sections=n_sections,
+    )
+    verts = frustum.vertices.copy()
+    for i in range(len(verts)):
+        y_frac = (verts[i, 1] / (h * 0.35 + overlap)) * 0.5 + 0.5
+        r = r_top * (1 - y_frac) + r_bot * y_frac
+        dist = np.sqrt(verts[i, 0] ** 2 + verts[i, 2] ** 2)
+        if dist > 0.001:
+            verts[i, 0] *= r / dist
+            verts[i, 2] *= r / dist
+    frustum.vertices = verts
+
+    cap_top = trimesh.creation.icosphere(subdivisions=2, radius=r_top)
+    cap_top.apply_translation([0, h * 0.35, 0])
+    cap_bot = trimesh.creation.icosphere(subdivisions=2, radius=r_bot)
+    cap_bot.apply_translation([0, -h * 0.35, 0])
+
+    return _concat([frustum, cap_top, cap_bot])
 
 
 def _baymax_foot(w=0.07, h=0.03, d=0.09):
@@ -1013,10 +1116,16 @@ def generate_urdf_from_compiled_parts(
         # Character-specific parts take priority
         if part_type in _CHARACTER_PARTS:
             char_fn, _, _ = _CHARACTER_PARTS[part_type]
+            part_name = p.get("name", "")
+            kwargs = {}
             if dims:
-                mesh = char_fn(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
-            else:
-                mesh = char_fn()
+                kwargs = {"w": dims[0] / 1000, "h": dims[1] / 1000, "d": dims[2] / 1000}
+            # Pass topology hints for frustum limbs
+            if part_type == "baymax_arm" and "forearm" in part_name:
+                kwargs["is_forearm"] = True
+            elif part_type == "baymax_leg" and "lower" in part_name:
+                kwargs["is_lower"] = True
+            mesh = char_fn(**kwargs)
         elif dims and part_type == "servo":
             mesh = _servo_motor(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
         elif dims and part_type == "link":

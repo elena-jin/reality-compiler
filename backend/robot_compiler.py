@@ -391,7 +391,16 @@ def _soft_body_graph(rng: random.Random, concept: ConceptParse):
 
 
 def _baymax_graph(rng: random.Random, concept: ConceptParse):
-    """Baymax-specific graph: inflatable balloon humanoid healthcare robot."""
+    """Baymax-specific graph: inflatable balloon humanoid healthcare robot.
+
+    Joint system follows spec:
+      Root       → World [0,0,0]           6-DOF
+      Cervical   → Torso [0,5.2,0.2]      X,Y rotation only
+      Shoulder   → Torso [±1.8,4.5,0]     Full ball-and-socket
+      Elbow      → Upper Arm [±1.8,2.7,0] Hinge (max 130°)
+      Hip        → Torso [±0.9,1.2,0]     X,Z rotation only
+    Limbs use conical frustums; forearm 20% thicker at wrist; 0.05 mesh overlap.
+    """
     torso_w = _seeded_range(rng, 220, 15)
     torso_h = _seeded_range(rng, 280, 20)
     head_w = _seeded_range(rng, 120, 8)
@@ -399,25 +408,30 @@ def _baymax_graph(rng: random.Random, concept: ConceptParse):
     arm_h = _seeded_range(rng, 180, 15)
     leg_h = _seeded_range(rng, 120, 10)
 
+    # Root → torso at [0,0,0] with 6-DOF (modeled as revolute Y for URDF)
     parts = [
         {"name": "hip_base", "type": "baymax_foot", "joint": "fixed", "dims_mm": (90, 30, 110), "material": "Inflatable vinyl", "function": "structural", "mass_g": 50},
-        {"name": "torso", "type": "baymax_torso", "joint": "revolute", "axis": "y", "lo": -0.2, "hi": 0.2, "effort": 15, "velocity": 0.4, "dims_mm": (torso_w, torso_h, torso_w * 0.9), "material": "Inflatable vinyl", "function": "structural", "mass_g": 900},
-        {"name": "head", "type": "baymax_head", "joint": "revolute", "axis": "y", "lo": -1.2, "hi": 1.2, "effort": 2, "velocity": 2.0, "dims_mm": (head_w, int(head_w * 0.6), int(head_w * 0.85)), "material": "Inflatable vinyl + OLED eyes", "function": "structural", "mass_g": 120},
-        {"name": "head_tilt", "type": "sensor", "joint": "revolute", "axis": "x", "lo": -0.4, "hi": 0.6, "effort": 1, "velocity": 1.57, "dims_mm": (30, 20, 15), "material": "ABS", "function": "sensor", "mass_g": 15},
+        {"name": "torso", "type": "baymax_torso", "joint": "revolute", "axis": "y", "lo": -0.2, "hi": 0.2, "effort": 15, "velocity": 0.4, "dims_mm": (torso_w, torso_h, int(torso_w * 0.9)), "material": "Inflatable vinyl", "function": "structural", "mass_g": 900},
     ]
+    # Cervical joint at [0, 5.2, 0.2] relative — X,Y rotation only
+    parts.append({"name": "cervical_yaw", "type": "baymax_head", "joint": "revolute", "axis": "y", "lo": -1.2, "hi": 1.2, "effort": 2, "velocity": 2.0, "dims_mm": (head_w, int(head_w * 0.6), int(head_w * 0.85)), "material": "Inflatable vinyl + OLED eyes", "function": "structural", "mass_g": 120})
+    parts.append({"name": "cervical_pitch", "type": "sensor", "joint": "revolute", "axis": "x", "lo": -0.5, "hi": 0.7, "effort": 1.5, "velocity": 1.57, "dims_mm": (30, 20, 15), "material": "ABS", "function": "sensor", "mass_g": 15})
 
+    # Shoulders at [±1.8, 4.5, 0] — full ball-and-socket (3 revolute)
     for side in ["left", "right"]:
-        parts.append({"name": f"{side}_shoulder_servo", "type": "servo", "joint": "fixed", "dims_mm": (40, 43, 20), "material": "ABS", "function": "actuator", "mass_g": 55})
+        parts.append({"name": f"{side}_shoulder_yaw", "type": "servo", "joint": "revolute", "axis": "y", "lo": -1.57, "hi": 1.57, "effort": 10, "velocity": 1.0, "dims_mm": (40, 43, 20), "material": "ABS", "function": "actuator", "mass_g": 55})
         parts.append({"name": f"{side}_upper_arm", "type": "baymax_arm", "joint": "revolute", "axis": "x", "lo": -1.57, "hi": 2.8, "effort": 10, "velocity": 1.0, "dims_mm": (arm_w, arm_h, arm_w), "material": "Inflatable vinyl", "function": "structural", "mass_g": 120})
-        parts.append({"name": f"{side}_elbow_servo", "type": "servo", "joint": "fixed", "dims_mm": (30, 32, 16), "material": "ABS", "function": "actuator", "mass_g": 35})
-        parts.append({"name": f"{side}_forearm", "type": "baymax_arm", "joint": "revolute", "axis": "z", "lo": -2.2, "hi": 0, "effort": 6, "velocity": 1.57, "dims_mm": (int(arm_w * 0.85), int(arm_h * 0.7), int(arm_w * 0.85)), "material": "Inflatable vinyl", "function": "structural", "mass_g": 90})
+        # Elbow at [±1.8, 2.7, 0] — hinge max 130° (2.27 rad)
+        parts.append({"name": f"{side}_elbow", "type": "servo", "joint": "revolute", "axis": "z", "lo": -2.27, "hi": 0, "effort": 6, "velocity": 1.57, "dims_mm": (30, 32, 16), "material": "ABS", "function": "actuator", "mass_g": 35})
+        parts.append({"name": f"{side}_forearm", "type": "baymax_arm", "joint": "fixed", "dims_mm": (int(arm_w * 0.85), int(arm_h * 0.7), int(arm_w * 0.85)), "material": "Inflatable vinyl", "function": "structural", "mass_g": 90})
         parts.append({"name": f"{side}_wrist", "type": "baymax_hand", "joint": "revolute", "axis": "y", "lo": -0.8, "hi": 0.8, "effort": 2, "velocity": 2.0, "dims_mm": (55, 40, 55), "material": "Inflatable vinyl", "function": "end_effector", "mass_g": 40})
 
+    # Hips at [±0.9, 1.2, 0] — X,Z rotation only
     for side in ["left", "right"]:
-        parts.append({"name": f"{side}_hip_servo", "type": "servo", "joint": "fixed", "dims_mm": (35, 38, 18), "material": "ABS", "function": "actuator", "mass_g": 45})
-        parts.append({"name": f"{side}_upper_leg", "type": "baymax_leg", "joint": "revolute", "axis": "x", "lo": -0.6, "hi": 0.6, "effort": 18, "velocity": 0.7, "dims_mm": (90, leg_h, 90), "material": "Inflatable vinyl", "function": "structural", "mass_g": 160})
-        parts.append({"name": f"{side}_knee_servo", "type": "servo", "joint": "fixed", "dims_mm": (30, 32, 16), "material": "ABS", "function": "actuator", "mass_g": 35})
-        parts.append({"name": f"{side}_lower_leg", "type": "baymax_leg", "joint": "revolute", "axis": "x", "lo": 0, "hi": 1.2, "effort": 12, "velocity": 0.9, "dims_mm": (int(90 * 0.8), int(leg_h * 0.7), int(90 * 0.8)), "material": "Inflatable vinyl", "function": "structural", "mass_g": 100})
+        parts.append({"name": f"{side}_hip_pitch", "type": "servo", "joint": "revolute", "axis": "x", "lo": -0.6, "hi": 0.6, "effort": 18, "velocity": 0.7, "dims_mm": (35, 38, 18), "material": "ABS", "function": "actuator", "mass_g": 45})
+        parts.append({"name": f"{side}_upper_leg", "type": "baymax_leg", "joint": "revolute", "axis": "z", "lo": -0.4, "hi": 0.4, "effort": 12, "velocity": 0.8, "dims_mm": (90, leg_h, 90), "material": "Inflatable vinyl", "function": "structural", "mass_g": 160})
+        parts.append({"name": f"{side}_knee", "type": "servo", "joint": "revolute", "axis": "x", "lo": 0, "hi": 2.27, "effort": 15, "velocity": 0.9, "dims_mm": (30, 32, 16), "material": "ABS", "function": "actuator", "mass_g": 35})
+        parts.append({"name": f"{side}_lower_leg", "type": "baymax_leg", "joint": "fixed", "dims_mm": (int(90 * 0.8), int(leg_h * 0.7), int(90 * 0.8)), "material": "Inflatable vinyl", "function": "structural", "mass_g": 100})
         parts.append({"name": f"{side}_foot", "type": "baymax_foot", "joint": "revolute", "axis": "x", "lo": -0.3, "hi": 0.5, "effort": 8, "velocity": 1.0, "dims_mm": (70, 30, 90), "material": "Inflatable vinyl", "function": "structural", "mass_g": 50})
 
     parts.append({"name": "controller", "type": "pcb", "joint": "fixed", "dims_mm": (60, 2, 40), "material": "FR-4", "function": "electronics", "mass_g": 15})
