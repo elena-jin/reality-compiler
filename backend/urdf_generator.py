@@ -180,61 +180,99 @@ def _tube(r_outer=0.008, r_inner=0.006, h=0.060):
 # Character-specific mesh generators
 # ---------------------------------------------------------------------------
 
-def _baymax_torso(w=0.18, h=0.24, d=0.16):
-    """Baymax inflatable torso: large oval balloon shape."""
-    torso = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    torso.apply_scale([w / 2, h / 2, d / 2])
-    belly_bulge = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    belly_bulge.apply_scale([w * 0.45, h * 0.35, d * 0.42])
-    belly_bulge.apply_translation([0, -h * 0.05, d * 0.08])
-    return _concat([torso, belly_bulge])
+def _baymax_torso(w=0.22, h=0.28, d=0.20):
+    """Baymax inflatable torso: massive egg/balloon shape wider at belly."""
+    # Main torso — egg shape: wider at bottom, narrower at top
+    torso_upper = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    torso_upper.apply_scale([w * 0.45, h * 0.28, d * 0.42])
+    torso_upper.apply_translation([0, h * 0.12, 0])
+
+    torso_lower = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    torso_lower.apply_scale([w * 0.52, h * 0.32, d * 0.48])
+    torso_lower.apply_translation([0, -h * 0.05, 0])
+
+    # Belly bulge — extra volume at front-bottom
+    belly = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
+    belly.apply_scale([w * 0.48, h * 0.28, d * 0.46])
+    belly.apply_translation([0, -h * 0.12, d * 0.06])
+
+    # Chest access port — circular ring detail
+    port_ring = trimesh.creation.annulus(r_min=0.012, r_max=0.018, height=0.003)
+    port_ring.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+    port_ring.apply_translation([0, h * 0.08, d * 0.44])
+
+    return _concat([torso_upper, torso_lower, belly, port_ring])
 
 
-def _baymax_head(w=0.10, h=0.08, d=0.09):
-    """Baymax head: wide oval with connected dot-eyes and line mouth."""
+def _baymax_head(w=0.12, h=0.07, d=0.10):
+    """Baymax head: wide flat oval with connected dot-eyes and bridge line."""
     head = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
-    head.apply_scale([w / 2, h / 2, d / 2])
-    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=0.008)
-    eye_l.apply_translation([-w * 0.15, h * 0.05, d / 2 - 0.005])
-    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=0.008)
-    eye_r.apply_translation([w * 0.15, h * 0.05, d / 2 - 0.005])
-    bridge = trimesh.creation.box((w * 0.15, 0.003, 0.003))
-    bridge.apply_translation([0, h * 0.05, d / 2 - 0.003])
+    head.apply_scale([w / 2, h / 2.2, d / 2])
+
+    # Two prominent dot-eyes
+    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=0.009)
+    eye_l.apply_translation([-w * 0.18, h * 0.08, d / 2 - 0.006])
+    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=0.009)
+    eye_r.apply_translation([w * 0.18, h * 0.08, d / 2 - 0.006])
+
+    # Connecting bridge line between eyes
+    bridge = trimesh.creation.box((w * 0.22, 0.003, 0.003))
+    bridge.apply_translation([0, h * 0.08, d / 2 - 0.004])
+
     return _concat([head, eye_l, eye_r, bridge])
 
 
-def _baymax_arm(w=0.06, h=0.16, d=0.06):
-    """Baymax inflatable arm: soft cylindrical balloon."""
-    arm = trimesh.creation.capsule(height=h - w, radius=w / 2)
-    arm.apply_transform(trimesh.transformations.rotation_matrix(0, [0, 0, 1]))
-    return arm
+def _baymax_arm(w=0.08, h=0.18, d=0.08):
+    """Baymax inflatable arm: thick puffy balloon limb tapered at ends."""
+    # Main thick balloon section
+    arm_main = trimesh.creation.capsule(height=h * 0.6, radius=w / 2)
+    # Shoulder bulge — puffy top
+    shoulder_bulge = trimesh.creation.icosphere(subdivisions=2, radius=w * 0.55)
+    shoulder_bulge.apply_translation([0, h * 0.25, 0])
+    # Wrist taper — slightly narrower
+    wrist = trimesh.creation.capsule(height=h * 0.15, radius=w * 0.35)
+    wrist.apply_translation([0, -h * 0.32, 0])
+    return _concat([arm_main, shoulder_bulge, wrist])
 
 
-def _baymax_hand(w=0.05, h=0.04, d=0.05):
-    """Baymax round hand/palm."""
-    palm = trimesh.creation.icosphere(subdivisions=2, radius=w / 2)
-    palm.apply_scale([1.0, h / w, 1.0])
+def _baymax_hand(w=0.055, h=0.04, d=0.055):
+    """Baymax puffy round hand with stubby balloon fingers."""
+    palm = trimesh.creation.icosphere(subdivisions=2, radius=w * 0.45)
+    palm.apply_scale([1.0, h / w * 0.9, 1.0])
+    # 4 stubby puffy fingers — capsules arranged in arc
     for i in range(4):
-        finger = trimesh.creation.capsule(height=0.02, radius=0.006)
-        angle = -0.4 + i * 0.27
-        finger.apply_translation([math.cos(angle) * w * 0.35, 0.01, math.sin(angle) * w * 0.35])
+        finger = trimesh.creation.capsule(height=0.018, radius=0.007)
+        angle = -0.35 + i * 0.24
+        finger.apply_translation([math.cos(angle) * w * 0.32, 0.012, math.sin(angle) * w * 0.32])
         palm = _concat([palm, finger])
-    thumb = trimesh.creation.capsule(height=0.015, radius=0.006)
-    thumb.apply_translation([-w * 0.35, 0, d * 0.2])
+    # Stubby thumb
+    thumb = trimesh.creation.capsule(height=0.014, radius=0.007)
+    thumb.apply_translation([-w * 0.33, 0, d * 0.22])
     return _concat([palm, thumb])
 
 
-def _baymax_leg(w=0.07, h=0.10, d=0.07):
-    """Baymax stubby inflatable leg."""
-    leg = trimesh.creation.capsule(height=h - w, radius=w / 2)
-    return leg
+def _baymax_leg(w=0.09, h=0.12, d=0.09):
+    """Baymax thick stubby inflatable leg."""
+    # Thick upper thigh
+    thigh = trimesh.creation.capsule(height=h * 0.5, radius=w * 0.5)
+    # Lower calf — slightly narrower
+    calf = trimesh.creation.capsule(height=h * 0.35, radius=w * 0.4)
+    calf.apply_translation([0, -h * 0.35, 0])
+    # Knee bulge — smooth transition
+    knee = trimesh.creation.icosphere(subdivisions=2, radius=w * 0.42)
+    knee.apply_translation([0, -h * 0.15, 0])
+    return _concat([thigh, calf, knee])
 
 
-def _baymax_foot(w=0.06, h=0.03, d=0.08):
-    """Baymax rounded foot."""
+def _baymax_foot(w=0.07, h=0.03, d=0.09):
+    """Baymax rounded padded foot."""
     foot = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
     foot.apply_scale([w / 2, h / 2, d / 2])
-    return foot
+    # Toe bump
+    toe = trimesh.creation.icosphere(subdivisions=2, radius=1.0)
+    toe.apply_scale([w * 0.4, h * 0.4, d * 0.25])
+    toe.apply_translation([0, -h * 0.1, d * 0.25])
+    return _concat([foot, toe])
 
 
 def _labubu_body_upper(w=0.06, h=0.055, d=0.05):
