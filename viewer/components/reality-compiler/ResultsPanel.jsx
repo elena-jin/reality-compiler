@@ -1,4 +1,4 @@
-import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot } from "lucide-react";
+import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot, Cpu, Zap } from "lucide-react";
 import { useState } from "react";
 
 function Card({ title, icon: Icon, children, visible, delay, defaultOpen = true }) {
@@ -214,6 +214,70 @@ function EngineeringSpecs({ parts }) {
   );
 }
 
+function RobotArchCard({ arch }) {
+  if (!arch) return null;
+  const cp = arch.concept_parse;
+  const morphColors = {
+    articulated_arm: "#6366f1", quadruped: "#10b981", hexapod: "#f59e0b",
+    humanoid: "#ef4444", aerial: "#3b82f6", wheeled: "#8b5cf6",
+    snake: "#ec4899", soft_body: "#14b8a6",
+  };
+  return (
+    <div className="rc-arch">
+      <div className="rc-arch-header">
+        <span className="rc-arch-class">{arch.robot_class}</span>
+        <span className="rc-arch-seed">seed: {arch.variation_seed}</span>
+      </div>
+      <div className="rc-arch-parse">
+        <div className="rc-arch-tag" style={{ borderColor: morphColors[cp.morphology] || "#6b7280" }}>
+          <Cpu size={10} />
+          <span>{cp.morphology?.replace("_", " ")}</span>
+        </div>
+        <div className="rc-arch-tag">
+          <Zap size={10} />
+          <span>{cp.function_role}</span>
+        </div>
+        <div className="rc-arch-tag">
+          <Box size={10} />
+          <span>{cp.visual_style}</span>
+        </div>
+      </div>
+      {cp.summary && <p className="rc-arch-summary">{cp.summary}</p>}
+      {arch.parametric_geometry_rules?.length > 0 && (
+        <div className="rc-arch-geo">
+          <span className="rc-eng-label">Geometry Rules</span>
+          <div className="rc-arch-geo-list">
+            {arch.parametric_geometry_rules.slice(0, 12).map((r, i) => (
+              <span key={i} className="rc-arch-prim" title={`${r.role}: ${r.material}`}>
+                {r.primitive}
+              </span>
+            ))}
+            {arch.parametric_geometry_rules.length > 12 && (
+              <span className="rc-arch-prim">+{arch.parametric_geometry_rules.length - 12}</span>
+            )}
+          </div>
+        </div>
+      )}
+      {arch.xray_internal_structure?.length > 0 && (
+        <div className="rc-arch-xray">
+          <span className="rc-eng-label">Internal Components</span>
+          {arch.xray_internal_structure.slice(0, 8).map((x, i) => (
+            <div key={i} className="rc-arch-xray-item">
+              <span className="rc-arch-xray-cat">{x.category}</span>
+              <span>{x.name}</span>
+            </div>
+          ))}
+          {arch.xray_internal_structure.length > 8 && (
+            <div className="rc-arch-xray-item">
+              <span className="rc-eng-label">+{arch.xray_internal_structure.length - 8} more</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TopologyView({ topology }) {
   if (!topology?.nodes?.length) return <p className="rc-empty-note">No topology data available</p>;
   const fnColors = {
@@ -403,6 +467,12 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
         </div>
       </Card>
 
+      {result.robot_architecture && (
+        <Card title="Robot Architecture" icon={Cpu} visible={revealStage >= 4} delay={250} defaultOpen={true}>
+          <RobotArchCard arch={result.robot_architecture} />
+        </Card>
+      )}
+
       {result.concept_model?.parametric_parts?.length > 0 && (
         <Card title="Engineering Specs" icon={Ruler} visible={revealStage >= 4} delay={300} defaultOpen={false}>
           <EngineeringSpecs parts={result.concept_model.parametric_parts} />
@@ -410,12 +480,12 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
       )}
 
       {result.concept_model?.topology && (
-        <Card title="Topology Graph" icon={GitBranch} visible={revealStage >= 4} delay={350} defaultOpen={false}>
+        <Card title="Topology Graph" icon={GitBranch} visible={revealStage >= 5} delay={350} defaultOpen={false}>
           <TopologyView topology={result.concept_model.topology} />
         </Card>
       )}
 
-      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 5} delay={400}>
+      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 6} delay={400}>
         <div className="rc-feasibility">
           <div className="rc-feasibility-header">
             <FeasibilityBadge score={feasibility?.score} />

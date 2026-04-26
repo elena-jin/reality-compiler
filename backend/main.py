@@ -160,10 +160,10 @@ async def generate(req: GenerateRequest):
     if mubit_context:
         logger.info("[mubit] Retrieved context: %s", mubit_context[:100])
 
-    # Stage 1: Design Agent – 3D concept model
+    # Stage 1: Design Agent – 3D concept model + robot architecture
     with _logfire_span("design", prompt=req.prompt[:100]):
         logger.info("[stage:design] Starting concept model generation")
-        concept_model = await generate_concept_model(req.prompt)
+        concept_model, robot_arch = await generate_concept_model(req.prompt)
         logger.info("[stage:design] Done in %.2fs – %d primitives", time.time() - t0, len(concept_model.primitives))
 
     # Stage 2: BOM & Assembly Agent
@@ -205,6 +205,7 @@ async def generate(req: GenerateRequest):
             assembly=assembly,
             feasibility=feasibility,
             arduino=arduino,
+            robot_architecture=robot_arch,
         )
         try:
             result.model_dump()
@@ -237,7 +238,7 @@ async def iterate(req: IterateRequest):
     if not previous:
         raise HTTPException(status_code=404, detail="Design not found in session")
 
-    concept_model = await generate_concept_model(
+    concept_model, robot_arch = await generate_concept_model(
         previous.prompt,
         previous_model=previous.concept_model,
         iteration_command=req.command,
@@ -276,6 +277,7 @@ async def iterate(req: IterateRequest):
         assembly=assembly,
         feasibility=feasibility,
         arduino=arduino,
+        robot_architecture=robot_arch,
     )
 
     # Mubit memory: store iteration as new run linked to session

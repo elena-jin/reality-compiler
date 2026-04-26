@@ -734,3 +734,121 @@ def _build_urdf(model_id: str, parts: list) -> str:
 
     lines.append("</robot>")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Procedural generation from robot_compiler parts
+# ---------------------------------------------------------------------------
+
+def generate_urdf_from_compiled_parts(
+    prompt: str,
+    compiled_parts: list[dict],
+    robot_class: str,
+) -> tuple[Optional[str], list[dict], Optional[dict]]:
+    """Generate URDF + STL from procedurally compiled part list.
+
+    compiled_parts: list of dicts from robot_compiler, each with:
+        name, type, joint, dims_mm, material, function, mass_g, ...
+    """
+    prompt_hash = hashlib.md5(prompt.encode()).hexdigest()[:8]
+    model_id = f"compiled_{robot_class}_{prompt_hash}".replace(" ", "_").replace("-", "_").lower()
+    model_dir = MODELS_DIR / model_id / "meshes"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    urdf_path = MODELS_DIR / model_id / "model.urdf"
+
+    # Convert compiled parts to archetype tuple format for reuse
+    archetype_parts = []
+    for p in compiled_parts:
+        joint_type = p.get("joint", "fixed")
+        joint_params = None
+        if joint_type in ("revolute", "continuous", "prismatic"):
+            joint_params = {
+                "axis": p.get("axis", "y"),
+                "effort": p.get("effort", 5.0),
+                "velocity": p.get("velocity", 1.57),
+            }
+            if joint_type == "revolute":
+                joint_params["lo"] = p.get("lo", -3.14)
+                joint_params["hi"] = p.get("hi", 3.14)
+            elif joint_type == "prismatic":
+                joint_params["lo"] = p.get("lo", -0.025)
+                joint_params["hi"] = p.get("hi", 0.025)
+        archetype_parts.append((p["name"], p["type"], joint_type, joint_params))
+
+    # Build parametric specs using compiled dimensions
+    parametric_parts = []
+    for p in compiled_parts:
+        dims = p.get("dims_mm", (50, 50, 50))
+        parametric_parts.append({
+            "name": p["name"],
+            "function": p.get("function", "structural"),
+            "dimensions": {
+                "length_mm": dims[0],
+                "width_mm": dims[1],
+                "height_mm": dims[2],
+                "diameter_mm": dims[0] if p["type"] in ("wheel", "gear", "propeller") else None,
+                "wall_thickness_mm": 3.0 if p["type"] in ("housing", "enclosure") else None,
+            },
+            "material": p.get("material", "6061-T6 Aluminum"),
+            "mass_grams": p.get("mass_g", 30.0),
+            "connection_points": [],
+            "export_spec": {
+                "step_definition": f"{p['type']} {dims[0]:.0f}x{dims[1]:.0f}x{dims[2]:.0f}mm, {p.get('material', '')}",
+                "stl_resolution": "0.1mm tolerance, 32 segments/circle",
+                "dxf_profile": None,
+                "glb_metadata": f"node={p['name']}, role={p.get('function', '')}",
+            },
+            "real_world_equivalent": p.get("equivalent", ""),
+        })
+
+    topology = _build_topology(archetype_parts)
+
+    # Skip if cached
+    if urdf_path.exists():
+        return f"/models/_generated/{model_id}/model.urdf", parametric_parts, topology
+
+    # Generate STL meshes using compiled dimensions
+    for p in compiled_parts:
+        part_type = p["type"]
+        gen_fn, _, scale = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
+        dims = p.get("dims_mm", None)
+        if dims and part_type == "servo":
+            mesh = _servo_motor(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "link":
+            mesh = _arm_link(length=dims[1] / 1000, w=dims[0] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "bracket":
+            mesh = _bracket_u(w=dims[0] / 1000, h=dims[1] / 1000, d=max(dims[2], 4) / 1000)
+        elif dims and part_type in ("housing", "enclosure", "body"):
+            mesh = _housing(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type in ("base", "plate"):
+            mesh = _plate(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "finger":
+            mesh = _finger(length=dims[1] / 1000, w=dims[0] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "wheel":
+            mesh = _wheel(r=dims[0] / 2000, w=dims[1] / 1000)
+        elif dims and part_type == "sensor":
+            mesh = _sensor(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "battery":
+            mesh = _battery(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type in ("pcb", "board", "controller"):
+            mesh = _pcb_board(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "propeller":
+            mesh = _propeller(length=dims[0] / 1000, w=dims[2] / 1000, h=dims[1] / 1000)
+        elif dims and part_type in ("motor",):
+            mesh = _servo_motor(w=dims[0] / 1000, h=dims[1] / 1000, d=dims[2] / 1000)
+        elif dims and part_type == "gear":
+            mesh = _gear(r=dims[0] / 2000, h=dims[1] / 1000)
+        else:
+            mesh = gen_fn()
+            if scale != 1.0:
+                mesh.apply_scale(scale)
+
+        stl_path = model_dir / f"{p['name']}.stl"
+        mesh.export(str(stl_path))
+
+    # Generate URDF
+    urdf_xml = _build_urdf(model_id, archetype_parts)
+    urdf_path.write_text(urdf_xml)
+
+    logger.info("Generated procedural URDF: %s with %d parts", model_id, len(compiled_parts))
+    return f"/models/_generated/{model_id}/model.urdf", parametric_parts, topology

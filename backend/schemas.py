@@ -202,6 +202,41 @@ class FeasibilityReport(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Generative robot architecture
+# ---------------------------------------------------------------------------
+
+class ConceptParse(BaseModel):
+    morphology: str = Field(description="humanoid | wheeled | quadruped | hexapod | articulated_arm | soft_body | hybrid | aerial | snake")
+    function_role: str = Field(description="assistant | medical | industrial | companion | exploration | education | filming | lab")
+    visual_style: str = Field(description="mechanical | soft | biomechanical | cartoon | sleek | rugged | minimalist")
+    summary: str = Field(default="", description="Natural language concept summary")
+
+
+class GeometryRule(BaseModel):
+    primitive: str = Field(description="sphere | capsule | box | cylinder | cone | torus")
+    scale: Vec3 = Field(default_factory=lambda: Vec3(x=1, y=1, z=1))
+    position: Vec3 = Field(default_factory=Vec3)
+    rotation: Vec3 = Field(default_factory=Vec3)
+    material: str = ""
+    role: str = Field(default="", description="Part role: body | joint | actuator | sensor | gripper | shell")
+
+
+class XRayComponent(BaseModel):
+    name: str
+    category: str = Field(description="motor | joint | wiring | structural_frame | sensor | controller | power")
+    position: Vec3 = Field(default_factory=Vec3)
+    description: str = ""
+
+
+class RobotArchitecture(BaseModel):
+    concept_parse: ConceptParse
+    robot_class: str = Field(default="", description="Generated class name, e.g. 'Lucid-7DOF-Arm'")
+    variation_seed: int = Field(default=0)
+    parametric_geometry_rules: list[GeometryRule] = Field(default_factory=list)
+    xray_internal_structure: list[XRayComponent] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Top-level generation result
 # ---------------------------------------------------------------------------
 
@@ -215,6 +250,7 @@ class GenerationResult(BaseModel):
     assembly: AssemblyInstructions
     feasibility: FeasibilityReport
     arduino: Optional[ArduinoWiring] = Field(default=None, description="Arduino wiring and code for electronics projects")
+    robot_architecture: Optional[RobotArchitecture] = Field(default=None, description="Generative robot architecture data")
 
 
 # ---------------------------------------------------------------------------

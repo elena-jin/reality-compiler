@@ -12,8 +12,9 @@ import math
 import os
 from typing import Optional
 
-from backend.schemas import ConceptModel, ModelPrimitive, Vec3
-from backend.urdf_generator import generate_urdf_for_prompt
+from backend.schemas import ConceptModel, ModelPrimitive, ParametricPart, TopologyGraph, Vec3
+from backend.urdf_generator import generate_urdf_for_prompt, generate_urdf_from_compiled_parts
+from backend.robot_compiler import compile_robot
 
 logger = logging.getLogger("reality_compiler.design_agent")
 
@@ -51,13 +52,13 @@ async def generate_concept_model(
     prompt: str,
     previous_model: Optional[ConceptModel] = None,
     iteration_command: Optional[str] = None,
-) -> ConceptModel:
+) -> tuple[ConceptModel, "RobotArchitecture | None"]:
     logger.info("Design agent: generating concept model for '%s'", prompt[:80])
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key:
         try:
-            return await _generate_with_openai(prompt, previous_model, iteration_command, api_key)
+            return await _generate_with_openai(prompt, previous_model, iteration_command, api_key), None
         except Exception:
             logger.warning("OpenAI call failed, falling back to heuristic generation", exc_info=True)
 
@@ -117,18 +118,30 @@ def _generate_heuristic(
     lp = prompt.lower()
 
     if previous_model and iteration_command:
-        return _apply_iteration(previous_model, iteration_command)
+        return _apply_iteration(previous_model, iteration_command), None
 
-    # Dynamic URDF generation with engineering-grade parametric data
+    # Procedural robot compilation — unique design per prompt
     urdf_path = None
     parametric_parts = []
     topology = None
+    robot_arch = None
+    compiled_parts = None
+
     try:
-        urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
+        robot_arch, compiled_parts = compile_robot(prompt)
+        logger.info("Robot compiler: %s (%s, %d parts)", robot_arch.robot_class, robot_arch.concept_parse.morphology, len(compiled_parts))
+
+        urdf_path, parametric_parts, topology = generate_urdf_from_compiled_parts(
+            prompt, compiled_parts, robot_arch.robot_class,
+        )
         if urdf_path:
-            logger.info("Design agent: dynamic URDF generated at %s with %d parametric parts", urdf_path, len(parametric_parts))
+            logger.info("Design agent: procedural URDF generated at %s", urdf_path)
     except Exception:
-        logger.warning("Dynamic URDF generation failed, using static fallback", exc_info=True)
+        logger.warning("Procedural compilation failed, falling back to archetype", exc_info=True)
+        try:
+            urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
+        except Exception:
+            logger.warning("Archetype URDF also failed", exc_info=True)
 
     if any(w in lp for w in ["gripper", "robot", "claw", "grabber"]):
         model = _gripper_model()
@@ -151,13 +164,11 @@ def _generate_heuristic(
     if urdf_path:
         model.urdf_path = urdf_path
     if parametric_parts:
-        from backend.schemas import ParametricPart
         model.parametric_parts = [ParametricPart(**p) for p in parametric_parts]
     if topology:
-        from backend.schemas import TopologyGraph
         model.topology = TopologyGraph(**topology)
 
-    return model
+    return model, robot_arch
 
 
 def _apply_iteration(model: ConceptModel, command: str) -> ConceptModel:

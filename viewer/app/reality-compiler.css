@@ -1621,3 +1621,33 @@ html, body {
 .rc-topo-dof { font-size: 9px; padding: 1px 4px; border-radius: 2px; background: rgba(16, 185, 129, 0.1); color: var(--rc-green); }
 .rc-topo-legend { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 6px; border-top: 1px solid var(--rc-border-subtle); }
 .rc-topo-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--rc-text-muted); text-transform: capitalize; }
+
+/* Robot Architecture */
+.rc-arch { display: flex; flex-direction: column; gap: 8px; }
+.rc-arch-header { display: flex; align-items: center; justify-content: space-between; }
+.rc-arch-class { font-size: 14px; font-weight: 600; color: var(--rc-accent); letter-spacing: -0.02em; }
+.rc-arch-seed { font-size: 10px; color: var(--rc-text-muted); font-family: "JetBrains Mono", monospace; }
+.rc-arch-parse { display: flex; gap: 6px; flex-wrap: wrap; }
+.rc-arch-tag {
+  display: flex; align-items: center; gap: 4px; padding: 3px 8px;
+  border-radius: 4px; background: var(--rc-surface-2); border: 1px solid var(--rc-border-subtle);
+  font-size: 11px; color: var(--rc-text-secondary); text-transform: capitalize;
+}
+.rc-arch-summary { font-size: 11px; color: var(--rc-text-muted); margin: 0; line-height: 1.4; }
+.rc-arch-geo { display: flex; flex-direction: column; gap: 4px; }
+.rc-arch-geo-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.rc-arch-prim {
+  font-size: 10px; padding: 2px 6px; border-radius: 3px;
+  background: var(--rc-accent-soft); color: var(--rc-accent);
+  font-family: "JetBrains Mono", monospace;
+}
+.rc-arch-xray { display: flex; flex-direction: column; gap: 3px; }
+.rc-arch-xray-item {
+  display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--rc-text-secondary);
+  padding: 2px 6px; background: var(--rc-surface-2); border-radius: 4px;
+}
+.rc-arch-xray-cat {
+  font-size: 9px; padding: 1px 4px; border-radius: 2px;
+  background: rgba(239, 68, 68, 0.1); color: var(--rc-red);
+  text-transform: uppercase; letter-spacing: 0.3px; min-width: 60px; text-align: center;
+}
