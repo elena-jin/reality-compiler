@@ -181,19 +181,19 @@ def _apply_iteration(model: ConceptModel, command: str) -> ConceptModel:
         for p in primitives:
             p.scale = Vec3(x=p.scale.x * 0.7, y=p.scale.y * 0.7, z=p.scale.z * 0.7)
             p.position = Vec3(x=p.position.x * 0.7, y=p.position.y * 0.7, z=p.position.z * 0.7)
-        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 0.8, urdf_path=urdf)
+        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 0.8, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
     if "big" in lc or "large" in lc or "scale up" in lc:
         for p in primitives:
             p.scale = Vec3(x=p.scale.x * 1.4, y=p.scale.y * 1.4, z=p.scale.z * 1.4)
             p.position = Vec3(x=p.position.x * 1.4, y=p.position.y * 1.4, z=p.position.z * 1.4)
-        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 1.3, urdf_path=urdf)
+        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 1.3, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
     if "simpl" in lc or "fewer" in lc or "less" in lc:
         keep = max(3, len(primitives) // 2)
-        return ConceptModel(primitives=primitives[:keep], camera_distance=model.camera_distance, urdf_path=urdf)
+        return ConceptModel(primitives=primitives[:keep], camera_distance=model.camera_distance, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
-    return ConceptModel(primitives=primitives, camera_distance=model.camera_distance, urdf_path=urdf)
+    return ConceptModel(primitives=primitives, camera_distance=model.camera_distance, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
 
 def _gripper_model() -> ConceptModel:
