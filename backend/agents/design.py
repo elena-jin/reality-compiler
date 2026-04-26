@@ -12,8 +12,9 @@ import math
 import os
 from typing import Optional
 
-from backend.schemas import ConceptModel, ModelPrimitive, Vec3
-from backend.urdf_generator import generate_urdf_for_prompt
+from backend.schemas import ConceptModel, ModelPrimitive, ParametricPart, TopologyGraph, Vec3
+from backend.urdf_generator import generate_urdf_for_prompt, generate_urdf_from_compiled_parts
+from backend.robot_compiler import compile_robot
 
 logger = logging.getLogger("reality_compiler.design_agent")
 
@@ -51,13 +52,13 @@ async def generate_concept_model(
     prompt: str,
     previous_model: Optional[ConceptModel] = None,
     iteration_command: Optional[str] = None,
-) -> ConceptModel:
+) -> tuple[ConceptModel, "RobotArchitecture | None"]:
     logger.info("Design agent: generating concept model for '%s'", prompt[:80])
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key:
         try:
-            return await _generate_with_openai(prompt, previous_model, iteration_command, api_key)
+            return await _generate_with_openai(prompt, previous_model, iteration_command, api_key), None
         except Exception:
             logger.warning("OpenAI call failed, falling back to heuristic generation", exc_info=True)
 
@@ -113,20 +114,41 @@ def _generate_heuristic(
     prompt: str,
     previous_model: Optional[ConceptModel],
     iteration_command: Optional[str],
-) -> ConceptModel:
+) -> tuple[ConceptModel, "RobotArchitecture | None"]:
     lp = prompt.lower()
 
     if previous_model and iteration_command:
-        return _apply_iteration(previous_model, iteration_command)
+        return _apply_iteration(previous_model, iteration_command), None
 
-    # Always attempt dynamic URDF generation for realistic 3D models
+    # Procedural robot compilation — unique design per prompt
+    urdf_path = None
+    parametric_parts = []
+    topology = None
+    robot_arch = None
+    compiled_parts = None
+
     try:
-        urdf_path = generate_urdf_for_prompt(prompt)
-        if urdf_path:
-            logger.info("Design agent: dynamic URDF generated at %s", urdf_path)
+        robot_arch, compiled_parts = compile_robot(prompt)
+        logger.info("Robot compiler: %s (%s, %d parts)", robot_arch.robot_class, robot_arch.concept_parse.morphology, len(compiled_parts))
     except Exception:
-        logger.warning("Dynamic URDF generation failed, using static fallback", exc_info=True)
-        urdf_path = None
+        logger.warning("Robot compilation failed, falling back to archetype", exc_info=True)
+        robot_arch = None
+
+    if robot_arch and compiled_parts:
+        try:
+            urdf_path, parametric_parts, topology = generate_urdf_from_compiled_parts(
+                prompt, compiled_parts, robot_arch.robot_class,
+            )
+            if urdf_path:
+                logger.info("Design agent: procedural URDF generated at %s", urdf_path)
+        except Exception:
+            logger.warning("URDF generation failed after successful compilation", exc_info=True)
+
+    if not urdf_path:
+        try:
+            urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
+        except Exception:
+            logger.warning("Archetype URDF also failed", exc_info=True)
 
     if any(w in lp for w in ["gripper", "robot", "claw", "grabber"]):
         model = _gripper_model()
@@ -145,11 +167,15 @@ def _generate_heuristic(
     else:
         model = _generic_model(prompt)
 
-    # Override with dynamically generated URDF if available
+    # Attach engineering-grade data
     if urdf_path:
         model.urdf_path = urdf_path
+    if parametric_parts:
+        model.parametric_parts = [ParametricPart(**p) for p in parametric_parts]
+    if topology:
+        model.topology = TopologyGraph(**topology)
 
-    return model
+    return model, robot_arch
 
 
 def _apply_iteration(model: ConceptModel, command: str) -> ConceptModel:
@@ -162,19 +188,19 @@ def _apply_iteration(model: ConceptModel, command: str) -> ConceptModel:
         for p in primitives:
             p.scale = Vec3(x=p.scale.x * 0.7, y=p.scale.y * 0.7, z=p.scale.z * 0.7)
             p.position = Vec3(x=p.position.x * 0.7, y=p.position.y * 0.7, z=p.position.z * 0.7)
-        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 0.8, urdf_path=urdf)
+        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 0.8, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
     if "big" in lc or "large" in lc or "scale up" in lc:
         for p in primitives:
             p.scale = Vec3(x=p.scale.x * 1.4, y=p.scale.y * 1.4, z=p.scale.z * 1.4)
             p.position = Vec3(x=p.position.x * 1.4, y=p.position.y * 1.4, z=p.position.z * 1.4)
-        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 1.3, urdf_path=urdf)
+        return ConceptModel(primitives=primitives, camera_distance=model.camera_distance * 1.3, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
     if "simpl" in lc or "fewer" in lc or "less" in lc:
         keep = max(3, len(primitives) // 2)
-        return ConceptModel(primitives=primitives[:keep], camera_distance=model.camera_distance, urdf_path=urdf)
+        return ConceptModel(primitives=primitives[:keep], camera_distance=model.camera_distance, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
-    return ConceptModel(primitives=primitives, camera_distance=model.camera_distance, urdf_path=urdf)
+    return ConceptModel(primitives=primitives, camera_distance=model.camera_distance, urdf_path=urdf, parametric_parts=model.parametric_parts, topology=model.topology)
 
 
 def _gripper_model() -> ConceptModel:

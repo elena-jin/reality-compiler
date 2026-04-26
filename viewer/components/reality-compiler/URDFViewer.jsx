@@ -223,6 +223,15 @@ export default function URDFViewer({ urdfPath, onPartSelect }) {
             parent = parent.parent;
           }
 
+          const bbox = new THREE.Box3().setFromObject(hit);
+          const size = new THREE.Vector3();
+          bbox.getSize(size);
+          const dims = {
+            w: Math.round(size.x * 1000),
+            h: Math.round(size.y * 1000),
+            d: Math.round(size.z * 1000),
+          };
+
           setTooltip({
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
@@ -231,9 +240,10 @@ export default function URDFViewer({ urdfPath, onPartSelect }) {
               .replace(/link$/, "")
               .trim(),
             category: parent?.isURDFLink ? "URDF Link" : "Mesh",
+            dims,
           });
           if (onPartSelect)
-            onPartSelect({ label: linkName, category: "URDF Link" });
+            onPartSelect({ label: linkName, category: "URDF Link", dims });
         } else {
           setTooltip(null);
           if (onPartSelect) onPartSelect(null);
@@ -617,6 +627,11 @@ export default function URDFViewer({ urdfPath, onPartSelect }) {
         >
           <span className="rc-tooltip-label">{tooltip.label}</span>
           <span className="rc-tooltip-cat">{tooltip.category}</span>
+          {tooltip.dims && (
+            <div className="rc-tooltip-dims">
+              <span>{tooltip.dims.w}×{tooltip.dims.h}×{tooltip.dims.d} mm</span>
+            </div>
+          )}
         </div>
       )}
       {joints.length > 0 && (

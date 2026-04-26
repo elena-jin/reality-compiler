@@ -30,6 +30,7 @@ from backend.agents.bom import generate_bom_and_assembly
 from backend.agents.sourcing import generate_sourcing
 from backend.agents.feasibility import generate_feasibility
 from backend.agents.arduino import generate_arduino
+from backend.agents.manufacturing import generate_manufacturing
 
 # ---------------------------------------------------------------------------
 # Logging (Pydantic sponsor requirement: logging hooks for each stage)
@@ -160,10 +161,10 @@ async def generate(req: GenerateRequest):
     if mubit_context:
         logger.info("[mubit] Retrieved context: %s", mubit_context[:100])
 
-    # Stage 1: Design Agent – 3D concept model
+    # Stage 1: Design Agent – 3D concept model + robot architecture
     with _logfire_span("design", prompt=req.prompt[:100]):
         logger.info("[stage:design] Starting concept model generation")
-        concept_model = await generate_concept_model(req.prompt)
+        concept_model, robot_arch = await generate_concept_model(req.prompt)
         logger.info("[stage:design] Done in %.2fs – %d primitives", time.time() - t0, len(concept_model.primitives))
 
     # Stage 2: BOM & Assembly Agent
@@ -194,6 +195,13 @@ async def generate(req: GenerateRequest):
         arduino = await generate_arduino(req.prompt, bom)
         logger.info("[stage:arduino] Done in %.2fs – %s", time.time() - t4, 'generated' if arduino else 'skipped')
 
+    # Stage 6: Manufacturing Agent – Shenzhen sourcing + RFQ
+    t5 = time.time()
+    with _logfire_span("manufacturing", prompt=req.prompt[:100]):
+        logger.info("[stage:manufacturing] Starting manufacturing plan generation")
+        manufacturing = await generate_manufacturing(req.prompt, bom)
+        logger.info("[stage:manufacturing] Done in %.2fs – %d suppliers", time.time() - t5, len(manufacturing.suppliers))
+
     # Pydantic validation with Logfire instrumentation
     with _logfire_span("validation"):
         logger.info("[validation] Validating all outputs with Pydantic strict schemas")
@@ -205,6 +213,8 @@ async def generate(req: GenerateRequest):
             assembly=assembly,
             feasibility=feasibility,
             arduino=arduino,
+            robot_architecture=robot_arch,
+            manufacturing=manufacturing,
         )
         try:
             result.model_dump()
@@ -237,7 +247,7 @@ async def iterate(req: IterateRequest):
     if not previous:
         raise HTTPException(status_code=404, detail="Design not found in session")
 
-    concept_model = await generate_concept_model(
+    concept_model, robot_arch = await generate_concept_model(
         previous.prompt,
         previous_model=previous.concept_model,
         iteration_command=req.command,
@@ -268,6 +278,9 @@ async def iterate(req: IterateRequest):
     # Arduino wiring for iteration
     arduino = await generate_arduino(previous.prompt, bom)
 
+    # Manufacturing plan for iteration
+    manufacturing = await generate_manufacturing(previous.prompt, bom)
+
     result = GenerationResult(
         prompt=f"{previous.prompt} [{req.command}]",
         concept_model=concept_model,
@@ -276,6 +289,8 @@ async def iterate(req: IterateRequest):
         assembly=assembly,
         feasibility=feasibility,
         arduino=arduino,
+        robot_architecture=robot_arch or previous.robot_architecture,
+        manufacturing=manufacturing,
     )
 
     # Mubit memory: store iteration as new run linked to session

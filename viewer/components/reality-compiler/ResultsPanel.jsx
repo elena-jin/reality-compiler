@@ -1,4 +1,4 @@
-import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers } from "lucide-react";
+import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot, Cpu, Zap, MapPin, Mail, Clock, FileText, Globe } from "lucide-react";
 import { useState } from "react";
 
 function Card({ title, icon: Icon, children, visible, delay, defaultOpen = true }) {
@@ -133,6 +133,331 @@ function MassProductionGuide({ feasibility, bom }) {
       <div className="rc-mp-notes">
         <p>Estimates based on Shenzhen manufacturing for electronics + UK assembly. Tooling includes injection mould setup for custom enclosures.</p>
       </div>
+    </div>
+  );
+}
+
+function EngineeringSpecs({ parts }) {
+  const [expandedPart, setExpandedPart] = useState(null);
+  if (!parts?.length) return <p className="rc-empty-note">No parametric data available</p>;
+  return (
+    <div className="rc-eng-specs">
+      {parts.map((part, i) => (
+        <div key={i} className="rc-eng-part">
+          <button
+            className="rc-eng-part-header"
+            onClick={() => setExpandedPart(expandedPart === i ? null : i)}
+            type="button"
+          >
+            <div className="rc-eng-part-name">
+              <Box size={12} />
+              <span>{part.name}</span>
+              <span className="rc-eng-fn-badge">{part.function}</span>
+            </div>
+            {expandedPart === i ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {expandedPart === i && (
+            <div className="rc-eng-part-detail">
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Dimensions</span>
+                <span>{part.dimensions.length_mm} x {part.dimensions.width_mm} x {part.dimensions.height_mm} mm</span>
+              </div>
+              {part.dimensions.diameter_mm && (
+                <div className="rc-eng-row">
+                  <span className="rc-eng-label">Diameter</span>
+                  <span>{part.dimensions.diameter_mm} mm</span>
+                </div>
+              )}
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Material</span>
+                <span>{part.material}</span>
+              </div>
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Mass</span>
+                <span>{part.mass_grams} g</span>
+              </div>
+              {part.real_world_equivalent && (
+                <div className="rc-eng-row">
+                  <span className="rc-eng-label">Real-world</span>
+                  <span>{part.real_world_equivalent}</span>
+                </div>
+              )}
+              {part.connection_points?.length > 0 && (
+                <div className="rc-eng-connections">
+                  <span className="rc-eng-label">Connections</span>
+                  {part.connection_points.map((cp, j) => (
+                    <div key={j} className="rc-eng-conn">
+                      <CircleDot size={10} />
+                      <span>{cp.name}</span>
+                      <span className="rc-eng-conn-type">{cp.type}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {part.export_spec?.step_definition && (
+                <div className="rc-eng-export">
+                  <span className="rc-eng-label">STEP</span>
+                  <span className="rc-eng-mono">{part.export_spec.step_definition}</span>
+                </div>
+              )}
+              {part.export_spec?.dxf_profile && (
+                <div className="rc-eng-export">
+                  <span className="rc-eng-label">DXF</span>
+                  <span className="rc-eng-mono">{part.export_spec.dxf_profile}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RobotArchCard({ arch }) {
+  if (!arch) return null;
+  const cp = arch.concept_parse;
+  const morphColors = {
+    articulated_arm: "#6366f1", quadruped: "#10b981", hexapod: "#f59e0b",
+    humanoid: "#ef4444", aerial: "#3b82f6", wheeled: "#8b5cf6",
+    snake: "#ec4899", soft_body: "#14b8a6",
+  };
+  return (
+    <div className="rc-arch">
+      <div className="rc-arch-header">
+        <span className="rc-arch-class">{arch.robot_class}</span>
+        <span className="rc-arch-seed">seed: {arch.variation_seed}</span>
+      </div>
+      {arch.base_archetype && (
+        <p className="rc-arch-archetype">{arch.base_archetype}</p>
+      )}
+      <div className="rc-arch-parse">
+        <div className="rc-arch-tag" style={{ borderColor: morphColors[cp.morphology] || "#6b7280" }}>
+          <Cpu size={10} />
+          <span>{cp.morphology?.replace("_", " ")}</span>
+        </div>
+        <div className="rc-arch-tag">
+          <Zap size={10} />
+          <span>{cp.function_role}</span>
+        </div>
+        <div className="rc-arch-tag">
+          <Box size={10} />
+          <span>{cp.visual_style}</span>
+        </div>
+      </div>
+      {arch.style_modifiers?.length > 0 && (
+        <div className="rc-arch-modifiers">
+          {arch.style_modifiers.map((m, i) => (
+            <span key={i} className="rc-arch-modifier">{m.replace("_", " ")}</span>
+          ))}
+        </div>
+      )}
+      {cp.summary && !arch.base_archetype && <p className="rc-arch-summary">{cp.summary}</p>}
+      {arch.parametric_geometry_rules?.length > 0 && (
+        <div className="rc-arch-geo">
+          <span className="rc-eng-label">Geometry Rules</span>
+          <div className="rc-arch-geo-list">
+            {arch.parametric_geometry_rules.slice(0, 12).map((r, i) => (
+              <span key={i} className="rc-arch-prim" title={`${r.role}: ${r.material}`}>
+                {r.primitive}
+              </span>
+            ))}
+            {arch.parametric_geometry_rules.length > 12 && (
+              <span className="rc-arch-prim">+{arch.parametric_geometry_rules.length - 12}</span>
+            )}
+          </div>
+        </div>
+      )}
+      {arch.xray_internal_structure?.length > 0 && (
+        <div className="rc-arch-xray">
+          <span className="rc-eng-label">Internal Components</span>
+          {arch.xray_internal_structure.slice(0, 8).map((x, i) => (
+            <div key={i} className="rc-arch-xray-item">
+              <span className="rc-arch-xray-cat">{x.category}</span>
+              <span>{x.name}</span>
+            </div>
+          ))}
+          {arch.xray_internal_structure.length > 8 && (
+            <div className="rc-arch-xray-item">
+              <span className="rc-eng-label">+{arch.xray_internal_structure.length - 8} more</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopologyView({ topology }) {
+  if (!topology?.nodes?.length) return <p className="rc-empty-note">No topology data available</p>;
+  const fnColors = {
+    actuator: "#ef4444",
+    structural: "#3b82f6",
+    sensor: "#f59e0b",
+    end_effector: "#10b981",
+    electronics: "#8b5cf6",
+    fastener: "#6b7280",
+  };
+  return (
+    <div className="rc-topology">
+      <div className="rc-topo-graph">
+        {topology.nodes.map((node) => (
+          <div key={node.id} className="rc-topo-node" style={{ borderColor: fnColors[node.function] || "#6b7280" }}>
+            <span className="rc-topo-dot" style={{ background: fnColors[node.function] || "#6b7280" }} />
+            <span>{node.part_name}</span>
+          </div>
+        ))}
+      </div>
+      {topology.edges?.length > 0 && (
+        <div className="rc-topo-edges">
+          <div className="rc-topo-edge-header">Connections</div>
+          {topology.edges.map((edge, i) => {
+            const src = topology.nodes.find((n) => n.id === edge.source);
+            const tgt = topology.nodes.find((n) => n.id === edge.target);
+            return (
+              <div key={i} className="rc-topo-edge">
+                <span>{src?.part_name}</span>
+                <span className="rc-topo-arrow">→</span>
+                <span>{tgt?.part_name}</span>
+                <span className="rc-topo-edge-type">{edge.connection_type}</span>
+                {edge.degrees_of_freedom > 0 && (
+                  <span className="rc-topo-dof">{edge.degrees_of_freedom} DOF</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="rc-topo-legend">
+        {Object.entries(fnColors).map(([fn, color]) => (
+          <span key={fn} className="rc-topo-legend-item">
+            <span className="rc-topo-dot" style={{ background: color }} />
+            {fn}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ManufacturingCard({ manufacturing }) {
+  const [activeRfq, setActiveRfq] = useState(null);
+  if (!manufacturing) return null;
+  const { product_interpretation: pi, suppliers, rfq_templates } = manufacturing;
+  return (
+    <div className="rc-mfg">
+      <div className="rc-mfg-interp">
+        <div className="rc-mfg-name">{pi.object_name}</div>
+        <p className="rc-mfg-desc">{pi.description}</p>
+        <div className="rc-mfg-form-badge">
+          <Box size={10} />
+          <span>{pi.physical_form}</span>
+        </div>
+        {pi.key_features?.length > 0 && (
+          <div className="rc-mfg-features">
+            {pi.key_features.map((f, i) => (
+              <span key={i} className="rc-mfg-feature">{f}</span>
+            ))}
+          </div>
+        )}
+        {pi.analogues?.length > 0 && (
+          <div className="rc-mfg-analogues">
+            <span className="rc-eng-label">Analogues</span>
+            <span>{pi.analogues.join(" · ")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="rc-mfg-costs">
+        <div className="rc-cost-row">
+          <span>Prototype cost (est.)</span>
+          <span className="rc-cost-value">${manufacturing.estimated_prototype_cost_usd?.toFixed(0)}</span>
+        </div>
+        <div className="rc-cost-row">
+          <span>Mass production unit cost</span>
+          <span className="rc-cost-value">${manufacturing.estimated_mass_production_cost_usd?.toFixed(0)}</span>
+        </div>
+      </div>
+
+      <div className="rc-mfg-suppliers">
+        <div className="rc-mfg-section-title">
+          <MapPin size={12} />
+          <span>Shenzhen Suppliers ({suppliers.length})</span>
+        </div>
+        {suppliers.map((s, i) => (
+          <div key={i} className="rc-mfg-supplier">
+            <div className="rc-mfg-supplier-header">
+              <span className="rc-mfg-supplier-name">{s.name}</span>
+              <span className="rc-mfg-use-badge">{s.best_use_case}</span>
+            </div>
+            <div className="rc-mfg-supplier-spec">{s.specialization}</div>
+            <div className="rc-mfg-supplier-details">
+              {s.district && (
+                <span className="rc-mfg-detail">
+                  <MapPin size={10} />
+                  {s.district}
+                </span>
+              )}
+              <span className="rc-mfg-detail">
+                <Mail size={10} />
+                {s.contact_method}
+              </span>
+              <span className="rc-mfg-detail">
+                <Clock size={10} />
+                Proto: {s.lead_time_prototype}
+              </span>
+              {s.moq && (
+                <span className="rc-mfg-detail">
+                  MOQ: {s.moq}
+                </span>
+              )}
+              {s.appointment_required && (
+                <span className="rc-mfg-appt">Appointment required</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {rfq_templates?.length > 0 && (
+        <div className="rc-mfg-rfqs">
+          <div className="rc-mfg-section-title">
+            <FileText size={12} />
+            <span>RFQ Templates</span>
+          </div>
+          {rfq_templates.map((rfq, i) => (
+            <div key={i} className="rc-mfg-rfq">
+              <button
+                className="rc-mfg-rfq-header"
+                onClick={() => setActiveRfq(activeRfq === i ? null : i)}
+                type="button"
+              >
+                <span>{rfq.subject}</span>
+                <span className="rc-mfg-rfq-type">{rfq.target_supplier_type}</span>
+              </button>
+              {activeRfq === i && (
+                <div className="rc-mfg-rfq-body">
+                  <pre>{rfq.body}</pre>
+                  <button
+                    className="rc-mfg-rfq-copy"
+                    onClick={() => navigator.clipboard.writeText(rfq.body)}
+                    type="button"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {manufacturing.recommended_approach && (
+        <div className="rc-mfg-recommendation">
+          <span className="rc-eng-label">Recommended Approach</span>
+          <p>{manufacturing.recommended_approach}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -274,7 +599,25 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
         </div>
       </Card>
 
-      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 4} delay={300}>
+      {result.robot_architecture && (
+        <Card title="Robot Architecture" icon={Cpu} visible={revealStage >= 4} delay={250} defaultOpen={true}>
+          <RobotArchCard arch={result.robot_architecture} />
+        </Card>
+      )}
+
+      {result.concept_model?.parametric_parts?.length > 0 && (
+        <Card title="Engineering Specs" icon={Ruler} visible={revealStage >= 4} delay={300} defaultOpen={false}>
+          <EngineeringSpecs parts={result.concept_model.parametric_parts} />
+        </Card>
+      )}
+
+      {result.concept_model?.topology && (
+        <Card title="Topology Graph" icon={GitBranch} visible={revealStage >= 5} delay={350} defaultOpen={false}>
+          <TopologyView topology={result.concept_model.topology} />
+        </Card>
+      )}
+
+      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 6} delay={400}>
         <div className="rc-feasibility">
           <div className="rc-feasibility-header">
             <FeasibilityBadge score={feasibility?.score} />
@@ -306,6 +649,12 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
           )}
         </div>
       </Card>
+
+      {result.manufacturing && (
+        <Card title="Shenzhen Manufacturing" icon={Globe} visible={revealStage >= 7} delay={450} defaultOpen={false}>
+          <ManufacturingCard manufacturing={result.manufacturing} />
+        </Card>
+      )}
     </div>
   );
 }

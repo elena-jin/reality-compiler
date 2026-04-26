@@ -49,10 +49,71 @@ class ModelPrimitive(BaseModel):
     label: str = ""
 
 
+# ---------------------------------------------------------------------------
+# Parametric part definitions (engineering-grade)
+# ---------------------------------------------------------------------------
+
+class ConnectionPoint(BaseModel):
+    name: str = Field(description="e.g. shaft_output, mounting_hole_1")
+    type: str = Field(description="joint | socket | axis | mounting_hole | flange")
+    position_mm: Vec3 = Field(default_factory=Vec3, description="Position relative to part origin in mm")
+    axis: Optional[Vec3] = Field(default=None, description="Axis direction for rotational connections")
+
+
+class ParametricDimensions(BaseModel):
+    length_mm: float = Field(ge=0, description="Length in mm")
+    width_mm: float = Field(ge=0, description="Width in mm")
+    height_mm: float = Field(ge=0, description="Height in mm")
+    diameter_mm: Optional[float] = Field(default=None, ge=0, description="Diameter for cylindrical parts")
+    wall_thickness_mm: Optional[float] = Field(default=None, ge=0, description="Wall thickness for hollow parts")
+
+
+class ExportSpec(BaseModel):
+    step_definition: str = Field(default="", description="Parametric solid description for STEP export")
+    stl_resolution: str = Field(default="0.1mm tolerance, 32 segments", description="Mesh resolution for STL")
+    dxf_profile: Optional[str] = Field(default=None, description="2D profile description if part is planar")
+    glb_metadata: str = Field(default="", description="Scene placement metadata for GLB export")
+
+
+class ParametricPart(BaseModel):
+    name: str
+    function: str = Field(description="Functional role: actuator | structural | sensor | end_effector | fastener | electronics")
+    dimensions: ParametricDimensions
+    material: str = Field(description="e.g. 6061-T6 Aluminum, ABS, PLA, Stainless Steel 304")
+    mass_grams: float = Field(ge=0, default=0.0)
+    connection_points: list[ConnectionPoint] = Field(default_factory=list)
+    export_spec: ExportSpec = Field(default_factory=ExportSpec)
+    real_world_equivalent: str = Field(default="", description="e.g. MG996R Servo Motor, M3x12 Socket Cap Screw")
+
+
+# ---------------------------------------------------------------------------
+# Topology graph
+# ---------------------------------------------------------------------------
+
+class TopologyNode(BaseModel):
+    id: str
+    part_name: str
+    function: str = ""
+
+
+class TopologyEdge(BaseModel):
+    source: str = Field(description="Node ID of parent part")
+    target: str = Field(description="Node ID of child part")
+    connection_type: str = Field(description="revolute | prismatic | fixed | fastener | contact")
+    degrees_of_freedom: int = Field(ge=0, le=6, default=0)
+
+
+class TopologyGraph(BaseModel):
+    nodes: list[TopologyNode] = Field(default_factory=list)
+    edges: list[TopologyEdge] = Field(default_factory=list)
+
+
 class ConceptModel(BaseModel):
     primitives: list[ModelPrimitive] = Field(default_factory=list)
     camera_distance: float = Field(default=5.0, description="Suggested camera distance")
     urdf_path: Optional[str] = Field(default=None, description="Path to URDF file for realistic rendering")
+    parametric_parts: list[ParametricPart] = Field(default_factory=list, description="Engineering-grade part definitions")
+    topology: Optional[TopologyGraph] = Field(default=None, description="Part connection graph")
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +202,83 @@ class FeasibilityReport(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Generative robot architecture
+# ---------------------------------------------------------------------------
+
+class ConceptParse(BaseModel):
+    morphology: str = Field(description="humanoid | wheeled | quadruped | hexapod | articulated_arm | soft_body | hybrid | aerial | snake")
+    function_role: str = Field(description="assistant | medical | industrial | companion | exploration | education | filming | lab")
+    visual_style: str = Field(description="mechanical | soft | biomechanical | cartoon | sleek | rugged | minimalist")
+    summary: str = Field(default="", description="Natural language concept summary")
+
+
+class GeometryRule(BaseModel):
+    primitive: str = Field(description="sphere | capsule | box | cylinder | cone | torus")
+    scale: Vec3 = Field(default_factory=lambda: Vec3(x=1, y=1, z=1))
+    position: Vec3 = Field(default_factory=Vec3)
+    rotation: Vec3 = Field(default_factory=Vec3)
+    material: str = ""
+    role: str = Field(default="", description="Part role: body | joint | actuator | sensor | gripper | shell")
+
+
+class XRayComponent(BaseModel):
+    name: str
+    category: str = Field(description="motor | joint | wiring | structural_frame | sensor | controller | power")
+    position: Vec3 = Field(default_factory=Vec3)
+    description: str = ""
+
+
+class RobotArchitecture(BaseModel):
+    concept_parse: ConceptParse
+    robot_class: str = Field(default="", description="Generated class name, e.g. 'Lucid-7DOF-Arm'")
+    base_archetype: str = Field(default="", description="Identity-locked archetype description, e.g. 'Soft inflatable humanoid healthcare robot'")
+    style_modifiers: list[str] = Field(default_factory=list, description="Visual/material style tags: soft, round_body, inflatable_vinyl, etc.")
+    variation_seed: int = Field(default=0)
+    parametric_geometry_rules: list[GeometryRule] = Field(default_factory=list)
+    xray_internal_structure: list[XRayComponent] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Manufacturing / Shenzhen sourcing
+# ---------------------------------------------------------------------------
+
+class ManufacturingSupplier(BaseModel):
+    name: str
+    specialization: str = Field(description="e.g. CNC machining, PCB fabrication, injection molding")
+    best_use_case: str = Field(description="prototype | pcb | cnc | injection_molding | mass_production | assembly")
+    contact_method: str = Field(default="", description="Email, inquiry form, or WeChat")
+    appointment_required: bool = False
+    lead_time_prototype: str = Field(default="", description="e.g. 3-5 days")
+    lead_time_production: str = Field(default="", description="e.g. 2-4 weeks")
+    district: str = Field(default="", description="Shenzhen district: Huaqiangbei | Bao'an | Longgang | Nanshan")
+    moq: Optional[str] = Field(default=None, description="Minimum order quantity if applicable")
+
+
+class ProductInterpretation(BaseModel):
+    object_name: str
+    description: str = Field(description="One-sentence description of the physical product")
+    physical_form: str = Field(description="robot | device | hybrid | machine | gadget | tool")
+    key_features: list[str] = Field(default_factory=list, description="3-5 key features")
+    analogues: list[str] = Field(default_factory=list, description="Real-world product analogues for inspiration")
+    bom_categories: list[str] = Field(default_factory=list, description="Component categories: electronics, mechanical, structural, sensors, etc.")
+
+
+class RFQTemplate(BaseModel):
+    subject: str
+    body: str
+    target_supplier_type: str = Field(description="Which supplier type this RFQ is for")
+
+
+class ManufacturingPlan(BaseModel):
+    product_interpretation: ProductInterpretation
+    suppliers: list[ManufacturingSupplier] = Field(default_factory=list)
+    rfq_templates: list[RFQTemplate] = Field(default_factory=list)
+    estimated_prototype_cost_usd: float = Field(ge=0, default=0.0)
+    estimated_mass_production_cost_usd: float = Field(ge=0, default=0.0)
+    recommended_approach: str = Field(default="", description="Summary recommendation for the founder")
+
+
+# ---------------------------------------------------------------------------
 # Top-level generation result
 # ---------------------------------------------------------------------------
 
@@ -154,6 +292,8 @@ class GenerationResult(BaseModel):
     assembly: AssemblyInstructions
     feasibility: FeasibilityReport
     arduino: Optional[ArduinoWiring] = Field(default=None, description="Arduino wiring and code for electronics projects")
+    robot_architecture: Optional[RobotArchitecture] = Field(default=None, description="Generative robot architecture data")
+    manufacturing: Optional[ManufacturingPlan] = Field(default=None, description="Shenzhen manufacturing plan with suppliers and RFQ templates")
 
 
 # ---------------------------------------------------------------------------
