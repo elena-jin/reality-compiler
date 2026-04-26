@@ -1,83 +1,52 @@
-<div align="center">
+# Reality Compiler
 
-<img src="assets/text-to-cad-demo.gif" alt="Demo of the text-to-cad harness generating and previewing CAD geometry" width="100%">
+Hardware idea to prototype in 60 seconds.
 
-<br>
+Describe any product — get a 3D model, bill of materials, sourcing links, assembly steps, and feasibility check.
 
-# ⚙ Open Source Text to CAD Harness ⚙
-
-An open source harness for generating 3D models with your favorite coding agent
-
-[![GitHub stars](https://img.shields.io/github/stars/earthtojake/text-to-cad?style=for-the-badge&logo=github&label=Stars)](https://github.com/earthtojake/text-to-cad/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/earthtojake/text-to-cad?style=for-the-badge&logo=github&label=Forks)](https://github.com/earthtojake/text-to-cad/network/members)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Follow @soft_servo](https://img.shields.io/badge/Follow-%40soft__servo-000000?style=for-the-badge&logo=x)](https://x.com/soft_servo)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements-cad.txt)
-[![build123d](https://img.shields.io/badge/build123d-CAD-00A676?style=for-the-badge)](https://github.com/gumyr/build123d)
-[![OCP](https://img.shields.io/badge/OCP-OpenCascade-2F80ED?style=for-the-badge)](requirements-cad.txt)
-[![STEP](https://img.shields.io/badge/STEP-Export-4A5568?style=for-the-badge)](skills/cad/SKILL.md)
-[![STL](https://img.shields.io/badge/STL-Export-4A5568?style=for-the-badge)](skills/cad/SKILL.md)
-[![URDF](https://img.shields.io/badge/URDF-Robots-6B46C1?style=for-the-badge)](skills/urdf/SKILL.md)
-[![Node.js](https://img.shields.io/badge/Node.js-Viewer-339933?style=for-the-badge&logo=node.js&logoColor=white)](viewer/package.json)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=111111)](viewer/package.json)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite&logoColor=white)](viewer/package.json)
-
-</div>
-
-## ✨ Features
-
-- **Generate** - Create source-controlled CAD models with coding agents like Codex and Claude Code.
-- **Export** - Produce STEP, STL, DXF, GLB, topology data, and URDF robot descriptions.
-- **Browse** - Inspect generated geometry in a local CAD Explorer viewer.
-- **Reference** - Copy stable `@cad[...]` references so agents can make precise follow-up edits.
-- **Review** - Render quick snapshots for fast checks during an iteration loop.
-- **Reproduce** - Edit source files first, then regenerate explicit targets.
-- **Local** - Run the harness and viewer locally with no backend to host.
-
-## 🧰 Bundled Skills
-
-This harness vendors file-targeted skills for CAD and robot-description work. Use the bundled copies here for local `models/` projects, or use the dedicated repositories when installing the skills outside this harness.
-
-- **CAD Skill** - STEP, STL, DXF, GLB/topology, snapshots, and `@cad[...]` geometry references. [Bundled docs](skills/cad/README.md) · [Standalone repo](https://github.com/earthtojake/cad-skill)
-- **URDF Skill** - Generated URDF XML, robot links, joints, limits, validation, and mesh references. [Bundled docs](skills/urdf/README.md) · [Standalone repo](https://github.com/earthtojake/urdf-skill)
-
-## 🔁 Workflow
-
-1. **Describe** - Tell your agent about the part, assembly, fixture, robot, or mechanism you want.
-2. **Edit** - Let your coding agent update CAD source files under `models/`.
-3. **Regenerate** - Create explicit STEP, STL, DXF, GLB, or URDF targets.
-4. **Inspect** - Open the CAD Explorer viewer to review the generated model.
-5. **Reference** - Copy `@cad[...]` handles when you want geometry-aware edits.
-6. **Commit** - Save the source and generated artifacts together once the model is ready.
-
-## 🚀 Quick Start
-
-Clone the repo:
+## Quick Start
 
 ```bash
-git clone https://github.com/earthtojake/text-to-cad.git
-cd text-to-cad
+# Backend
+cd backend && pip install -r requirements.txt && uvicorn backend.main:app --reload
+
+# Frontend
+cd viewer && npm install && npm run dev
 ```
 
-Install Python CAD dependencies:
+Open [http://localhost:4178](http://localhost:4178).
+
+## What It Does
+
+- **3D URDF Models** — Engineering-grade parametric parts with real kinematics, not boxes
+- **Bill of Materials** — Real components with sourcing (Amazon UK, RS, Alibaba)
+- **Assembly** — Step-by-step build instructions + Arduino wiring
+- **Feasibility** — Cost estimates, risk assessment, manufacturing readiness
+- **Engineering Specs** — Exact dimensions (mm), materials, connection points, STEP/STL/DXF export definitions
+- **Topology Graph** — Part connection map with joint types and degrees of freedom
+- **X-Ray Mode** — See internal structure: motors, joints, wiring paths, frame
+
+## Architecture
+
+```
+backend/
+  main.py          — FastAPI server
+  agents/          — Design, BOM, Sourcing, Feasibility, Arduino
+  urdf_generator.py — Parametric URDF + STL generation
+  schemas.py       — Pydantic validation for all outputs
+viewer/
+  components/reality-compiler/  — React + Three.js frontend
+```
+
+## Integrations
+
+- **Pydantic Logfire** — Structured observability for every generation stage
+- **Mubit SDK** — Design memory for iteration ("make it cheaper")
+
+## Deploy
 
 ```bash
-python3.11 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
-./.venv/bin/pip install -r requirements-cad.txt
+fly deploy
 ```
 
-Install viewer dependencies:
-
-```bash
-cd viewer
-npm install
-```
-
-Run the local CAD Explorer:
-
-```bash
-npm run dev
-```
-
-Then open [http://localhost:4178](http://localhost:4178).
+Live at [reality-compiler-taejuaku.fly.dev](https://reality-compiler-taejuaku.fly.dev/)

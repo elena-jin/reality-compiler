@@ -27,9 +27,9 @@ export default function RealityCompilerApp() {
 
   const staggerReveal = useCallback(() => {
     setRevealStage(0);
-    const stages = [1, 2, 3, 4, 5];
+    const stages = [1, 2, 3, 4, 5, 6];
     stages.forEach((s, i) => {
-      setTimeout(() => setRevealStage(s), 200 + i * 300);
+      setTimeout(() => setRevealStage(s), 200 + i * 250);
     });
   }, []);
 

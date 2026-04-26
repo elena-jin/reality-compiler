@@ -119,14 +119,16 @@ def _generate_heuristic(
     if previous_model and iteration_command:
         return _apply_iteration(previous_model, iteration_command)
 
-    # Always attempt dynamic URDF generation for realistic 3D models
+    # Dynamic URDF generation with engineering-grade parametric data
+    urdf_path = None
+    parametric_parts = []
+    topology = None
     try:
-        urdf_path = generate_urdf_for_prompt(prompt)
+        urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
         if urdf_path:
-            logger.info("Design agent: dynamic URDF generated at %s", urdf_path)
+            logger.info("Design agent: dynamic URDF generated at %s with %d parametric parts", urdf_path, len(parametric_parts))
     except Exception:
         logger.warning("Dynamic URDF generation failed, using static fallback", exc_info=True)
-        urdf_path = None
 
     if any(w in lp for w in ["gripper", "robot", "claw", "grabber"]):
         model = _gripper_model()
@@ -145,9 +147,15 @@ def _generate_heuristic(
     else:
         model = _generic_model(prompt)
 
-    # Override with dynamically generated URDF if available
+    # Attach engineering-grade data
     if urdf_path:
         model.urdf_path = urdf_path
+    if parametric_parts:
+        from backend.schemas import ParametricPart
+        model.parametric_parts = [ParametricPart(**p) for p in parametric_parts]
+    if topology:
+        from backend.schemas import TopologyGraph
+        model.topology = TopologyGraph(**topology)
 
     return model
 

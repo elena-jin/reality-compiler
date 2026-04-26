@@ -49,10 +49,71 @@ class ModelPrimitive(BaseModel):
     label: str = ""
 
 
+# ---------------------------------------------------------------------------
+# Parametric part definitions (engineering-grade)
+# ---------------------------------------------------------------------------
+
+class ConnectionPoint(BaseModel):
+    name: str = Field(description="e.g. shaft_output, mounting_hole_1")
+    type: str = Field(description="joint | socket | axis | mounting_hole | flange")
+    position_mm: Vec3 = Field(default_factory=Vec3, description="Position relative to part origin in mm")
+    axis: Optional[Vec3] = Field(default=None, description="Axis direction for rotational connections")
+
+
+class ParametricDimensions(BaseModel):
+    length_mm: float = Field(ge=0, description="Length in mm")
+    width_mm: float = Field(ge=0, description="Width in mm")
+    height_mm: float = Field(ge=0, description="Height in mm")
+    diameter_mm: Optional[float] = Field(default=None, ge=0, description="Diameter for cylindrical parts")
+    wall_thickness_mm: Optional[float] = Field(default=None, ge=0, description="Wall thickness for hollow parts")
+
+
+class ExportSpec(BaseModel):
+    step_definition: str = Field(default="", description="Parametric solid description for STEP export")
+    stl_resolution: str = Field(default="0.1mm tolerance, 32 segments", description="Mesh resolution for STL")
+    dxf_profile: Optional[str] = Field(default=None, description="2D profile description if part is planar")
+    glb_metadata: str = Field(default="", description="Scene placement metadata for GLB export")
+
+
+class ParametricPart(BaseModel):
+    name: str
+    function: str = Field(description="Functional role: actuator | structural | sensor | end_effector | fastener | electronics")
+    dimensions: ParametricDimensions
+    material: str = Field(description="e.g. 6061-T6 Aluminum, ABS, PLA, Stainless Steel 304")
+    mass_grams: float = Field(ge=0, default=0.0)
+    connection_points: list[ConnectionPoint] = Field(default_factory=list)
+    export_spec: ExportSpec = Field(default_factory=ExportSpec)
+    real_world_equivalent: str = Field(default="", description="e.g. MG996R Servo Motor, M3x12 Socket Cap Screw")
+
+
+# ---------------------------------------------------------------------------
+# Topology graph
+# ---------------------------------------------------------------------------
+
+class TopologyNode(BaseModel):
+    id: str
+    part_name: str
+    function: str = ""
+
+
+class TopologyEdge(BaseModel):
+    source: str = Field(description="Node ID of parent part")
+    target: str = Field(description="Node ID of child part")
+    connection_type: str = Field(description="revolute | prismatic | fixed | fastener | contact")
+    degrees_of_freedom: int = Field(ge=0, le=6, default=0)
+
+
+class TopologyGraph(BaseModel):
+    nodes: list[TopologyNode] = Field(default_factory=list)
+    edges: list[TopologyEdge] = Field(default_factory=list)
+
+
 class ConceptModel(BaseModel):
     primitives: list[ModelPrimitive] = Field(default_factory=list)
     camera_distance: float = Field(default=5.0, description="Suggested camera distance")
     urdf_path: Optional[str] = Field(default=None, description="Path to URDF file for realistic rendering")
+    parametric_parts: list[ParametricPart] = Field(default_factory=list, description="Engineering-grade part definitions")
+    topology: Optional[TopologyGraph] = Field(default=None, description="Part connection graph")
 
 
 # ---------------------------------------------------------------------------

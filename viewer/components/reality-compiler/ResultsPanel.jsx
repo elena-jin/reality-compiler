@@ -1,4 +1,4 @@
-import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers } from "lucide-react";
+import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot } from "lucide-react";
 import { useState } from "react";
 
 function Card({ title, icon: Icon, children, visible, delay, defaultOpen = true }) {
@@ -132,6 +132,135 @@ function MassProductionGuide({ feasibility, bom }) {
 
       <div className="rc-mp-notes">
         <p>Estimates based on Shenzhen manufacturing for electronics + UK assembly. Tooling includes injection mould setup for custom enclosures.</p>
+      </div>
+    </div>
+  );
+}
+
+function EngineeringSpecs({ parts }) {
+  const [expandedPart, setExpandedPart] = useState(null);
+  if (!parts?.length) return <p className="rc-empty-note">No parametric data available</p>;
+  return (
+    <div className="rc-eng-specs">
+      {parts.map((part, i) => (
+        <div key={i} className="rc-eng-part">
+          <button
+            className="rc-eng-part-header"
+            onClick={() => setExpandedPart(expandedPart === i ? null : i)}
+            type="button"
+          >
+            <div className="rc-eng-part-name">
+              <Box size={12} />
+              <span>{part.name}</span>
+              <span className="rc-eng-fn-badge">{part.function}</span>
+            </div>
+            {expandedPart === i ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {expandedPart === i && (
+            <div className="rc-eng-part-detail">
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Dimensions</span>
+                <span>{part.dimensions.length_mm} x {part.dimensions.width_mm} x {part.dimensions.height_mm} mm</span>
+              </div>
+              {part.dimensions.diameter_mm && (
+                <div className="rc-eng-row">
+                  <span className="rc-eng-label">Diameter</span>
+                  <span>{part.dimensions.diameter_mm} mm</span>
+                </div>
+              )}
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Material</span>
+                <span>{part.material}</span>
+              </div>
+              <div className="rc-eng-row">
+                <span className="rc-eng-label">Mass</span>
+                <span>{part.mass_grams} g</span>
+              </div>
+              {part.real_world_equivalent && (
+                <div className="rc-eng-row">
+                  <span className="rc-eng-label">Real-world</span>
+                  <span>{part.real_world_equivalent}</span>
+                </div>
+              )}
+              {part.connection_points?.length > 0 && (
+                <div className="rc-eng-connections">
+                  <span className="rc-eng-label">Connections</span>
+                  {part.connection_points.map((cp, j) => (
+                    <div key={j} className="rc-eng-conn">
+                      <CircleDot size={10} />
+                      <span>{cp.name}</span>
+                      <span className="rc-eng-conn-type">{cp.type}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {part.export_spec?.step_definition && (
+                <div className="rc-eng-export">
+                  <span className="rc-eng-label">STEP</span>
+                  <span className="rc-eng-mono">{part.export_spec.step_definition}</span>
+                </div>
+              )}
+              {part.export_spec?.dxf_profile && (
+                <div className="rc-eng-export">
+                  <span className="rc-eng-label">DXF</span>
+                  <span className="rc-eng-mono">{part.export_spec.dxf_profile}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TopologyView({ topology }) {
+  if (!topology?.nodes?.length) return <p className="rc-empty-note">No topology data available</p>;
+  const fnColors = {
+    actuator: "#ef4444",
+    structural: "#3b82f6",
+    sensor: "#f59e0b",
+    end_effector: "#10b981",
+    electronics: "#8b5cf6",
+    fastener: "#6b7280",
+  };
+  return (
+    <div className="rc-topology">
+      <div className="rc-topo-graph">
+        {topology.nodes.map((node) => (
+          <div key={node.id} className="rc-topo-node" style={{ borderColor: fnColors[node.function] || "#6b7280" }}>
+            <span className="rc-topo-dot" style={{ background: fnColors[node.function] || "#6b7280" }} />
+            <span>{node.part_name}</span>
+          </div>
+        ))}
+      </div>
+      {topology.edges?.length > 0 && (
+        <div className="rc-topo-edges">
+          <div className="rc-topo-edge-header">Connections</div>
+          {topology.edges.map((edge, i) => {
+            const src = topology.nodes.find((n) => n.id === edge.source);
+            const tgt = topology.nodes.find((n) => n.id === edge.target);
+            return (
+              <div key={i} className="rc-topo-edge">
+                <span>{src?.part_name}</span>
+                <span className="rc-topo-arrow">→</span>
+                <span>{tgt?.part_name}</span>
+                <span className="rc-topo-edge-type">{edge.connection_type}</span>
+                {edge.degrees_of_freedom > 0 && (
+                  <span className="rc-topo-dof">{edge.degrees_of_freedom} DOF</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="rc-topo-legend">
+        {Object.entries(fnColors).map(([fn, color]) => (
+          <span key={fn} className="rc-topo-legend-item">
+            <span className="rc-topo-dot" style={{ background: color }} />
+            {fn}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -274,7 +403,19 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
         </div>
       </Card>
 
-      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 4} delay={300}>
+      {result.concept_model?.parametric_parts?.length > 0 && (
+        <Card title="Engineering Specs" icon={Ruler} visible={revealStage >= 4} delay={300} defaultOpen={false}>
+          <EngineeringSpecs parts={result.concept_model.parametric_parts} />
+        </Card>
+      )}
+
+      {result.concept_model?.topology && (
+        <Card title="Topology Graph" icon={GitBranch} visible={revealStage >= 4} delay={350} defaultOpen={false}>
+          <TopologyView topology={result.concept_model.topology} />
+        </Card>
+      )}
+
+      <Card title="Feasibility Assessment" icon={ShieldCheck} visible={revealStage >= 5} delay={400}>
         <div className="rc-feasibility">
           <div className="rc-feasibility-header">
             <FeasibilityBadge score={feasibility?.score} />

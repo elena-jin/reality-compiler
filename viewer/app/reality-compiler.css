@@ -1576,3 +1576,48 @@ html, body {
     display: none;
   }
 }
+
+/* Engineering Specs */
+.rc-eng-specs { display: flex; flex-direction: column; gap: 2px; }
+.rc-eng-part { border: 1px solid var(--rc-border-subtle); border-radius: var(--rc-radius); overflow: hidden; }
+.rc-eng-part-header {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 8px 10px; background: var(--rc-surface-2);
+  border: none; color: var(--rc-text); cursor: pointer; font-size: 12px;
+}
+.rc-eng-part-header:hover { background: var(--rc-surface-3); }
+.rc-eng-part-name { display: flex; align-items: center; gap: 6px; }
+.rc-eng-fn-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: var(--rc-accent-soft); color: var(--rc-accent); text-transform: uppercase;
+}
+.rc-eng-part-detail { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; background: var(--rc-surface); }
+.rc-eng-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--rc-text-secondary); }
+.rc-eng-label { color: var(--rc-text-muted); min-width: 80px; flex-shrink: 0; }
+.rc-eng-connections { display: flex; flex-direction: column; gap: 3px; }
+.rc-eng-conn { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--rc-text-secondary); padding-left: 4px; }
+.rc-eng-conn-type { font-size: 9px; padding: 1px 4px; border-radius: 2px; background: var(--rc-surface-3); color: var(--rc-text-muted); }
+.rc-eng-export { display: flex; flex-direction: column; gap: 2px; }
+.rc-eng-mono { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--rc-text-secondary); line-height: 1.4; word-break: break-word; }
+.rc-empty-note { color: var(--rc-text-muted); font-size: 12px; text-align: center; padding: 12px 0; }
+
+/* Topology Graph */
+.rc-topology { display: flex; flex-direction: column; gap: 10px; }
+.rc-topo-graph { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-topo-node {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px; border-radius: var(--rc-radius);
+  background: var(--rc-surface-2); border: 1px solid; font-size: 11px; color: var(--rc-text-secondary);
+}
+.rc-topo-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.rc-topo-edges { display: flex; flex-direction: column; gap: 3px; }
+.rc-topo-edge-header { font-size: 10px; color: var(--rc-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.rc-topo-edge {
+  display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--rc-text-secondary);
+  padding: 3px 6px; background: var(--rc-surface-2); border-radius: 4px;
+}
+.rc-topo-arrow { color: var(--rc-text-muted); }
+.rc-topo-edge-type { font-size: 9px; padding: 1px 4px; border-radius: 2px; background: var(--rc-surface-3); color: var(--rc-accent); }
+.rc-topo-dof { font-size: 9px; padding: 1px 4px; border-radius: 2px; background: rgba(16, 185, 129, 0.1); color: var(--rc-green); }
+.rc-topo-legend { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 6px; border-top: 1px solid var(--rc-border-subtle); }
+.rc-topo-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--rc-text-muted); text-transform: capitalize; }
