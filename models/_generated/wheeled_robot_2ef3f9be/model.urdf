@@ -1,0 +1,188 @@
+<?xml version="1.0" ?>
+<robot name="wheeled_robot_2ef3f9be">
+
+  <material name="black_anodized">
+    <color rgba="0.12 0.12 0.14 1.0"/>
+  </material>
+  <material name="dark_metal">
+    <color rgba="0.25 0.25 0.28 1.0"/>
+  </material>
+  <material name="aluminum">
+    <color rgba="0.75 0.75 0.78 1.0"/>
+  </material>
+  <material name="servo_blue">
+    <color rgba="0.10 0.12 0.20 1.0"/>
+  </material>
+  <material name="pcb_green">
+    <color rgba="0.05 0.30 0.12 1.0"/>
+  </material>
+  <material name="rubber_black">
+    <color rgba="0.08 0.08 0.08 1.0"/>
+  </material>
+  <material name="carbon_fiber">
+    <color rgba="0.10 0.10 0.12 1.0"/>
+  </material>
+  <material name="battery_blue">
+    <color rgba="0.12 0.18 0.35 1.0"/>
+  </material>
+  <material name="clear">
+    <color rgba="0.80 0.80 0.82 1.0"/>
+  </material>
+  <material name="red_wire">
+    <color rgba="0.70 0.10 0.10 1.0"/>
+  </material>
+  <material name="yellow">
+    <color rgba="0.80 0.70 0.10 1.0"/>
+  </material>
+
+  <link name="chassis_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/chassis.stl"/></geometry>
+      <material name="black_anodized"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <link name="controller_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/controller.stl"/></geometry>
+      <material name="pcb_green"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="controller_joint" type="fixed">
+    <parent link="chassis_link"/>
+    <child link="controller_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="motor_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/motor_l.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="motor_l_joint" type="fixed">
+    <parent link="controller_link"/>
+    <child link="motor_l_link"/>
+    <origin xyz="0.05 0.008 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="wheel_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/wheel_l.stl"/></geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="wheel_l_joint" type="continuous">
+    <parent link="motor_l_link"/>
+    <child link="wheel_l_link"/>
+    <origin xyz="-0.04 -0.01 0" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="motor_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/motor_r.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="motor_r_joint" type="fixed">
+    <parent link="wheel_l_link"/>
+    <child link="motor_r_link"/>
+    <origin xyz="0.05 0.008 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="wheel_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/wheel_r.stl"/></geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="wheel_r_joint" type="continuous">
+    <parent link="motor_r_link"/>
+    <child link="wheel_r_link"/>
+    <origin xyz="0.04 -0.01 0" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="caster_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/caster.stl"/></geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <parent link="wheel_r_link"/>
+    <child link="caster_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="sensor_front_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sensor_front.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="sensor_front_joint" type="fixed">
+    <parent link="caster_link"/>
+    <child link="sensor_front_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="battery_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/battery.stl"/></geometry>
+      <material name="battery_blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="battery_joint" type="fixed">
+    <parent link="sensor_front_link"/>
+    <child link="battery_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

@@ -1,0 +1,190 @@
+<?xml version="1.0" ?>
+<robot name="gripper_dcc30ade">
+
+  <material name="black_anodized">
+    <color rgba="0.12 0.12 0.14 1.0"/>
+  </material>
+  <material name="dark_metal">
+    <color rgba="0.25 0.25 0.28 1.0"/>
+  </material>
+  <material name="aluminum">
+    <color rgba="0.75 0.75 0.78 1.0"/>
+  </material>
+  <material name="servo_blue">
+    <color rgba="0.10 0.12 0.20 1.0"/>
+  </material>
+  <material name="pcb_green">
+    <color rgba="0.05 0.30 0.12 1.0"/>
+  </material>
+  <material name="rubber_black">
+    <color rgba="0.08 0.08 0.08 1.0"/>
+  </material>
+  <material name="carbon_fiber">
+    <color rgba="0.10 0.10 0.12 1.0"/>
+  </material>
+  <material name="battery_blue">
+    <color rgba="0.12 0.18 0.35 1.0"/>
+  </material>
+  <material name="clear">
+    <color rgba="0.80 0.80 0.82 1.0"/>
+  </material>
+  <material name="red_wire">
+    <color rgba="0.70 0.10 0.10 1.0"/>
+  </material>
+  <material name="yellow">
+    <color rgba="0.80 0.70 0.10 1.0"/>
+  </material>
+
+  <link name="mounting_plate_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/mounting_plate.stl"/></geometry>
+      <material name="black_anodized"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <link name="housing_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/housing.stl"/></geometry>
+      <material name="black_anodized"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="housing_joint" type="fixed">
+    <parent link="mounting_plate_link"/>
+    <child link="housing_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="actuator_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/actuator.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="actuator_joint" type="fixed">
+    <parent link="housing_link"/>
+    <child link="actuator_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="finger_base_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/finger_base_l.stl"/></geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="finger_base_l_joint" type="prismatic">
+    <parent link="actuator_link"/>
+    <child link="finger_base_l_link"/>
+    <origin xyz="-0.015 0.010 0" rpy="0 0 0.1"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.025" upper="0" effort="5" velocity="0.1"/>
+  </joint>
+
+  <link name="finger_tip_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/finger_tip_l.stl"/></geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="finger_tip_l_joint" type="fixed">
+    <parent link="finger_base_l_link"/>
+    <child link="finger_tip_l_link"/>
+    <origin xyz="-0.015 0.010 0" rpy="0 0 0.1"/>
+  </joint>
+
+  <link name="sensor_l_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sensor_l.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="sensor_l_joint" type="fixed">
+    <parent link="finger_tip_l_link"/>
+    <child link="sensor_l_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="finger_base_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/finger_base_r.stl"/></geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="finger_base_r_joint" type="prismatic">
+    <parent link="sensor_l_link"/>
+    <child link="finger_base_r_link"/>
+    <origin xyz="0.015 0.010 0" rpy="0 0 -0.1"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0.025" effort="5" velocity="0.1"/>
+  </joint>
+
+  <link name="finger_tip_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/finger_tip_r.stl"/></geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="finger_tip_r_joint" type="fixed">
+    <parent link="finger_base_r_link"/>
+    <child link="finger_tip_r_link"/>
+    <origin xyz="0.015 0.010 0" rpy="0 0 -0.1"/>
+  </joint>
+
+  <link name="sensor_r_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sensor_r.stl"/></geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="sensor_r_joint" type="fixed">
+    <parent link="finger_tip_r_link"/>
+    <child link="sensor_r_link"/>
+    <origin xyz="0 0.0150 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>
