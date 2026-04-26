@@ -183,70 +183,80 @@ def _tube(r_outer=0.008, r_inner=0.006, h=0.060):
 def _baymax_torso(w=0.22, h=0.28, d=0.20):
     """Baymax NURBS-style pear torso with belly sag and chest port.
 
-    Spec: non-uniform scale [1.2, 1.4, 1.0], vertex density shifted to
-    bottom 30%, belly extrusion Z+0.4 at Y [1.5, 3.0].
+    Diagram spec (absolute units, model height ~6u, mapped to meters):
+      Non-uniform scale [1.2, 1.4, 1.0]
+      Belly sag: vertex density shifted to bottom 30%
+      Z-axis belly extrusion: +0.4 units between Y=1.5 and Y=3.0
+        (mapped: Y range = 25%-50% of total height, depth = 0.4/6 ≈ 6.7% of h)
+      Mesh overlap at joint boundaries: 0.05 units
     """
-    # Start with high-res icosphere, apply pear deformation
     base = trimesh.creation.icosphere(subdivisions=4, radius=1.0)
     verts = base.vertices.copy()
 
-    # Non-uniform scale [1.2, 1.4, 1.0] mapped to dimensions
-    verts[:, 0] *= w * 0.6 * 1.2   # X: wider
-    verts[:, 1] *= h * 0.5 * 1.4   # Y: taller
-    verts[:, 2] *= d * 0.5 * 1.0   # Z: base depth
+    # Non-uniform scale [1.2, 1.4, 1.0] — exact diagram values
+    sx, sy, sz = 1.2, 1.4, 1.0
+    verts[:, 0] *= w * 0.5 * sx
+    verts[:, 1] *= h * 0.5 * sy
+    verts[:, 2] *= d * 0.5 * sz
 
-    # Pear deformation: widen bottom, narrow top
-    # Shift vertex density toward bottom 30% (belly sag)
+    half_h = h * 0.5 * sy  # scaled half-height
+
     for i in range(len(verts)):
-        y_norm = (verts[i, 1] / (h * 0.5 * 1.4)) if (h * 0.5 * 1.4) > 0 else 0
-        # Bottom half gets wider (belly sag)
-        if y_norm < 0:
-            expansion = 1.0 + 0.35 * abs(y_norm)
+        y_norm = verts[i, 1] / half_h if half_h > 0 else 0
+
+        # Pear deformation: widen bottom 30%, narrow top
+        if y_norm < -0.2:
+            expansion = 1.0 + 0.4 * abs(y_norm + 0.2)
             verts[i, 0] *= expansion
             verts[i, 2] *= expansion
-        # Top narrows (shoulder region)
         elif y_norm > 0.3:
-            shrink = 1.0 - 0.2 * (y_norm - 0.3)
-            verts[i, 0] *= max(shrink, 0.6)
+            shrink = 1.0 - 0.25 * (y_norm - 0.3)
+            verts[i, 0] *= max(shrink, 0.55)
 
-        # Belly extrusion: push front vertices out at mid-to-low Y
-        y_abs = verts[i, 1]
-        y_lo, y_hi = -h * 0.25, h * 0.1
-        if y_lo <= y_abs <= y_hi and verts[i, 2] > 0:
-            frac = 1.0 - abs((y_abs - (y_lo + y_hi) / 2) / ((y_hi - y_lo) / 2))
-            verts[i, 2] += d * 0.2 * frac
+        # Z-axis belly extrusion: +0.4u between Y=1.5 and Y=3.0
+        # Mapped: y_norm range [-0.5, 0.0] in normalized coords
+        belly_lo, belly_hi = -0.5, 0.0
+        if belly_lo <= y_norm <= belly_hi and verts[i, 2] > 0:
+            # Smooth falloff from center of belly band
+            center = (belly_lo + belly_hi) / 2
+            half_band = (belly_hi - belly_lo) / 2
+            frac = 1.0 - ((y_norm - center) / half_band) ** 2
+            # +0.4 units → scaled to model: 0.4/6 * h
+            verts[i, 2] += (0.4 / 6.0) * h * max(frac, 0)
 
     base.vertices = verts
 
-    # Chest access port — circular ring detail
+    # Chest access port — circular ring
     port_ring = trimesh.creation.annulus(r_min=0.012, r_max=0.018, height=0.003)
     port_ring.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
-    port_ring.apply_translation([0, h * 0.08, d * 0.44])
+    port_ring.apply_translation([0, h * 0.1, d * 0.48])
 
     return _concat([base, port_ring])
 
 
 def _baymax_head(w=0.12, h=0.07, d=0.10):
-    """Baymax head with precision facial rig.
+    """Baymax head with precision facial rig per diagram.
 
-    Spec: capsule-shaped boolean slot 0.45-wide x 0.15-high (scaled),
-    two 0.15-unit eye spheres at slot terminals, bridge cylinder connecting
-    eye centers, placed at 60% head height.
+    Diagram spec:
+      Boolean slot: capsule-shaped, 0.45w wide × 0.15h high
+      Eyes: two 0.15-unit sphere eyes at slot terminals
+      Bridge: thin flat-faced cylinder connecting eye centers
+      Placement: surface-aligned at 60% height of head
     """
     head = trimesh.creation.icosphere(subdivisions=3, radius=1.0)
     head.apply_scale([w / 2, h / 2.2, d / 2])
 
-    # Facial slot: capsule-shaped indentation via boolean subtraction
-    slot_w = w * 0.45
-    slot_h = h * 0.15
-    slot_depth = d * 0.08
-    slot_y = h * 0.1  # 60% of head height
+    # Facial slot — exact diagram: 0.45w × 0.15h capsule indentation
+    slot_w = 0.45 * w       # 0.45 × head width
+    slot_h = 0.15 * h       # 0.15 × head height
+    slot_depth = 0.12 * d   # deep enough for visible indentation
+    slot_y = 0.6 * (h / 2.2) - (h / 2.2) * 0.1  # 60% of head height from bottom
 
-    # Create capsule-shaped slot (box + end caps)
+    # Capsule slot = box center + semicircle end caps
     slot_box = trimesh.creation.box((slot_w - slot_h, slot_h, slot_depth))
-    slot_cap_l = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=16)
+    slot_cap_l = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=24)
     slot_cap_l.apply_translation([-(slot_w - slot_h) / 2, 0, 0])
-    slot_cap_r = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=16)
+    slot_cap_r = trimesh.creation.cylinder(radius=slot_h / 2, height=slot_depth, sections=24)
     slot_cap_r.apply_translation([(slot_w - slot_h) / 2, 0, 0])
     slot_cutter = _concat([slot_box, slot_cap_l, slot_cap_r])
     slot_cutter.apply_translation([0, slot_y, d / 2 - slot_depth / 2 + 0.002])
@@ -254,21 +264,24 @@ def _baymax_head(w=0.12, h=0.07, d=0.10):
     try:
         head = head.difference(slot_cutter)
     except Exception:
-        pass  # boolean ops can fail; continue with non-subtracted head
+        pass
 
-    # Eye spheres inside slot terminals (scaled 0.15 units → proportional)
-    eye_r_size = min(w, h) * 0.15
-    eye_spacing = slot_w * 0.38
-    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=eye_r_size)
-    eye_l.apply_translation([-eye_spacing, slot_y, d / 2 - slot_depth * 0.3])
-    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=eye_r_size)
-    eye_r.apply_translation([eye_spacing, slot_y, d / 2 - slot_depth * 0.3])
+    # Eye spheres: 0.15 units (proportional to head scale)
+    eye_radius = 0.15 * min(w, h)
+    # Place at slot terminals (inside each end of the capsule slot)
+    eye_x = (slot_w - slot_h) / 2
+    eye_y = slot_y
+    eye_z = d / 2 - slot_depth * 0.35  # recessed into slot
+    eye_l = trimesh.creation.icosphere(subdivisions=2, radius=eye_radius)
+    eye_l.apply_translation([-eye_x, eye_y, eye_z])
+    eye_r = trimesh.creation.icosphere(subdivisions=2, radius=eye_radius)
+    eye_r.apply_translation([eye_x, eye_y, eye_z])
 
-    # Bridge: flat-faced cylinder connecting eye centers
-    bridge_len = eye_spacing * 2
-    bridge = trimesh.creation.cylinder(radius=0.002, height=bridge_len, sections=8)
+    # Bridge: thin cylinder connecting eye centers
+    bridge_len = eye_x * 2
+    bridge = trimesh.creation.cylinder(radius=0.0015, height=bridge_len, sections=8)
     bridge.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 0, 1]))
-    bridge.apply_translation([0, slot_y, d / 2 - slot_depth * 0.3])
+    bridge.apply_translation([0, eye_y, eye_z])
 
     return _concat([head, eye_l, eye_r, bridge])
 
