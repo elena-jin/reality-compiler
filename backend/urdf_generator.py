@@ -633,7 +633,7 @@ def generate_urdf_for_prompt(prompt: str) -> tuple[Optional[str], list[dict], Op
     return f"/models/_generated/{model_id}/model.urdf", parametric_parts, topology
 
 
-def _build_urdf(model_id: str, parts: list) -> str:
+def _build_urdf(model_id: str, parts: list, part_overrides: dict | None = None) -> str:
     lines = ['<?xml version="1.0" ?>']
     lines.append(f'<robot name="{model_id}">')
     lines.append("")
@@ -652,10 +652,14 @@ def _build_urdf(model_id: str, parts: list) -> str:
     for i, (part_name, part_type, joint_type, joint_params) in enumerate(parts):
         _, mat_name, _ = COMPONENT_LIBRARY.get(part_type, (_box_part, "dark_metal", 1.0))
         link_name = f"{part_name}_link"
-        spec = PARAMETRIC_SPECS.get(part_type, {})
-        mass_kg = spec.get("mass", 50.0) / 1000.0
-        dims = spec.get("dims", (50, 50, 50))
-        # Inertia from box approximation: I = m/12 * (b² + c²)
+        override = (part_overrides or {}).get(part_name)
+        if override:
+            dims = override["dims_mm"]
+            mass_kg = override["mass_g"] / 1000.0
+        else:
+            spec = PARAMETRIC_SPECS.get(part_type, {})
+            mass_kg = spec.get("mass", 50.0) / 1000.0
+            dims = spec.get("dims", (50, 50, 50))
         lx, ly, lz = dims[0] / 1000.0, dims[1] / 1000.0, dims[2] / 1000.0
         ixx = mass_kg / 12.0 * (ly ** 2 + lz ** 2)
         iyy = mass_kg / 12.0 * (lx ** 2 + lz ** 2)
@@ -846,8 +850,16 @@ def generate_urdf_from_compiled_parts(
         stl_path = model_dir / f"{p['name']}.stl"
         mesh.export(str(stl_path))
 
+    # Build overrides map from compiled parts for accurate inertial properties
+    part_overrides = {}
+    for p in compiled_parts:
+        part_overrides[p["name"]] = {
+            "dims_mm": p.get("dims_mm", (50, 50, 50)),
+            "mass_g": p.get("mass_g", 50.0),
+        }
+
     # Generate URDF
-    urdf_xml = _build_urdf(model_id, archetype_parts)
+    urdf_xml = _build_urdf(model_id, archetype_parts, part_overrides=part_overrides)
     urdf_path.write_text(urdf_xml)
 
     logger.info("Generated procedural URDF: %s with %d parts", model_id, len(compiled_parts))
