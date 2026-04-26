@@ -1,0 +1,327 @@
+<?xml version="1.0" ?>
+<robot name="robot_arm_6dof" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ===== Materials ===== -->
+  <material name="black_anodized">
+    <color rgba="0.12 0.12 0.14 1.0"/>
+  </material>
+  <material name="dark_metal">
+    <color rgba="0.20 0.20 0.22 1.0"/>
+  </material>
+  <material name="aluminum">
+    <color rgba="0.75 0.75 0.78 1.0"/>
+  </material>
+  <material name="servo_blue">
+    <color rgba="0.10 0.12 0.20 1.0"/>
+  </material>
+  <material name="green_pcb">
+    <color rgba="0.05 0.30 0.12 1.0"/>
+  </material>
+  <material name="rubber_black">
+    <color rgba="0.08 0.08 0.08 1.0"/>
+  </material>
+
+  <!-- ===== Link 0: Base ===== -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.003" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/base_plate.stl"/>
+      </geometry>
+      <material name="black_anodized"/>
+    </visual>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <!-- ===== Turntable ===== -->
+  <link name="turntable_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/turntable.stl"/>
+      </geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="base_rotation" type="revolute">
+    <parent link="base_link"/>
+    <child link="turntable_link"/>
+    <origin xyz="0 0.015 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="1.0"/>
+  </joint>
+
+  <!-- ===== Shoulder Servo ===== -->
+  <link name="shoulder_servo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/shoulder_servo.stl"/>
+      </geometry>
+      <material name="servo_blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.06"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="shoulder_mount" type="fixed">
+    <parent link="turntable_link"/>
+    <child link="shoulder_servo_link"/>
+    <origin xyz="0 0.012 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Shoulder Bracket ===== -->
+  <link name="shoulder_bracket_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/shoulder_bracket.stl"/>
+      </geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.04"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="shoulder_pitch" type="revolute">
+    <parent link="shoulder_servo_link"/>
+    <child link="shoulder_bracket_link"/>
+    <origin xyz="0 0.025 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="1.5708" effort="10" velocity="1.0"/>
+  </joint>
+
+  <!-- ===== Upper Arm ===== -->
+  <link name="upper_arm_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/upper_arm.stl"/>
+      </geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.08"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="upper_arm_mount" type="fixed">
+    <parent link="shoulder_bracket_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="0 0.035 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Elbow Servo ===== -->
+  <link name="elbow_servo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/elbow_servo.stl"/>
+      </geometry>
+      <material name="servo_blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.06"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="elbow_mount" type="fixed">
+    <parent link="upper_arm_link"/>
+    <child link="elbow_servo_link"/>
+    <origin xyz="0 0.065 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Elbow Bracket ===== -->
+  <link name="elbow_bracket_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/elbow_bracket.stl"/>
+      </geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.03"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="elbow_pitch" type="revolute">
+    <parent link="elbow_servo_link"/>
+    <child link="elbow_bracket_link"/>
+    <origin xyz="0 0.024 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.356" upper="0.7854" effort="8" velocity="1.0"/>
+  </joint>
+
+  <!-- ===== Forearm ===== -->
+  <link name="forearm_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/forearm.stl"/>
+      </geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.06"/>
+      <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="forearm_mount" type="fixed">
+    <parent link="elbow_bracket_link"/>
+    <child link="forearm_link"/>
+    <origin xyz="0 0.030 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Wrist Servo ===== -->
+  <link name="wrist_servo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/wrist_servo.stl"/>
+      </geometry>
+      <material name="servo_blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.03"/>
+      <inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/>
+    </inertial>
+  </link>
+
+  <joint name="wrist_mount" type="fixed">
+    <parent link="forearm_link"/>
+    <child link="wrist_servo_link"/>
+    <origin xyz="0 0.055 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Wrist Bracket ===== -->
+  <link name="wrist_bracket_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/wrist_bracket.stl"/>
+      </geometry>
+      <material name="aluminum"/>
+    </visual>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000003" ixy="0" ixz="0" iyy="0.000003" iyz="0" izz="0.000003"/>
+    </inertial>
+  </link>
+
+  <joint name="wrist_rotate" type="revolute">
+    <parent link="wrist_servo_link"/>
+    <child link="wrist_bracket_link"/>
+    <origin xyz="0 0.016 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="4" velocity="1.5"/>
+  </joint>
+
+  <!-- ===== Wrist Pitch ===== -->
+  <link name="wrist_pitch_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/wrist_servo.stl"/>
+      </geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000003" ixy="0" ixz="0" iyy="0.000003" iyz="0" izz="0.000003"/>
+    </inertial>
+  </link>
+
+  <joint name="wrist_pitch" type="revolute">
+    <parent link="wrist_bracket_link"/>
+    <child link="wrist_pitch_link"/>
+    <origin xyz="0 0.020 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5708" upper="1.5708" effort="3" velocity="1.5"/>
+  </joint>
+
+  <!-- ===== Gripper Base ===== -->
+  <link name="gripper_base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/gripper_base.stl"/>
+      </geometry>
+      <material name="dark_metal"/>
+    </visual>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000002" ixy="0" ixz="0" iyy="0.000002" iyz="0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_mount" type="fixed">
+    <parent link="wrist_pitch_link"/>
+    <child link="gripper_base_link"/>
+    <origin xyz="0 0.018 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Left Finger ===== -->
+  <link name="gripper_left_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/gripper_left.stl"/>
+      </geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_left_joint" type="revolute">
+    <parent link="gripper_base_link"/>
+    <child link="gripper_left_link"/>
+    <origin xyz="-0.012 0.010 0" rpy="0 0 0.1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="0.7854" effort="2" velocity="2.0"/>
+  </joint>
+
+  <!-- ===== Right Finger ===== -->
+  <link name="gripper_right_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/gripper_right.stl"/>
+      </geometry>
+      <material name="rubber_black"/>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_right_joint" type="revolute">
+    <parent link="gripper_base_link"/>
+    <child link="gripper_right_link"/>
+    <origin xyz="0.012 0.010 0" rpy="0 0 -0.1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.7854" upper="0" effort="2" velocity="2.0"/>
+    <mimic joint="gripper_left_joint" multiplier="-1"/>
+  </joint>
+
+</robot>

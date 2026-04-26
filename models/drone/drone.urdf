@@ -1,0 +1,203 @@
+<?xml version="1.0" ?>
+<robot name="quadcopter_drone">
+
+  <material name="carbon_fiber">
+    <color rgba="0.10 0.10 0.12 1.0"/>
+  </material>
+  <material name="motor_silver">
+    <color rgba="0.70 0.70 0.72 1.0"/>
+  </material>
+  <material name="prop_grey">
+    <color rgba="0.25 0.25 0.28 1.0"/>
+  </material>
+  <material name="pcb_green">
+    <color rgba="0.05 0.30 0.12 1.0"/>
+  </material>
+  <material name="battery_blue">
+    <color rgba="0.12 0.18 0.35 1.0"/>
+  </material>
+  <material name="camera_black">
+    <color rgba="0.08 0.08 0.10 1.0"/>
+  </material>
+  <material name="rubber_dark">
+    <color rgba="0.12 0.12 0.12 1.0"/>
+  </material>
+
+  <!-- ===== Body ===== -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/center_body.stl"/></geometry>
+      <material name="carbon_fiber"/>
+    </visual>
+    <inertial><mass value="0.3"/><inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/></inertial>
+  </link>
+
+  <!-- FR arm -->
+  <link name="arm_fr_link">
+    <visual><geometry><mesh filename="meshes/arm_fr.stl"/></geometry><material name="carbon_fiber"/></visual>
+    <inertial><mass value="0.02"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial>
+  </link>
+  <joint name="arm_fr_joint" type="fixed">
+    <parent link="base_link"/><child link="arm_fr_link"/>
+    <origin xyz="0.05 0.005 0.05" rpy="0 0 0.785"/>
+  </joint>
+
+  <!-- FL arm -->
+  <link name="arm_fl_link">
+    <visual><geometry><mesh filename="meshes/arm_fl.stl"/></geometry><material name="carbon_fiber"/></visual>
+    <inertial><mass value="0.02"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial>
+  </link>
+  <joint name="arm_fl_joint" type="fixed">
+    <parent link="base_link"/><child link="arm_fl_link"/>
+    <origin xyz="-0.05 0.005 0.05" rpy="0 0 -0.785"/>
+  </joint>
+
+  <!-- BR arm -->
+  <link name="arm_br_link">
+    <visual><geometry><mesh filename="meshes/arm_br.stl"/></geometry><material name="carbon_fiber"/></visual>
+    <inertial><mass value="0.02"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial>
+  </link>
+  <joint name="arm_br_joint" type="fixed">
+    <parent link="base_link"/><child link="arm_br_link"/>
+    <origin xyz="0.05 0.005 -0.05" rpy="0 0 -0.785"/>
+  </joint>
+
+  <!-- BL arm -->
+  <link name="arm_bl_link">
+    <visual><geometry><mesh filename="meshes/arm_bl.stl"/></geometry><material name="carbon_fiber"/></visual>
+    <inertial><mass value="0.02"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial>
+  </link>
+  <joint name="arm_bl_joint" type="fixed">
+    <parent link="base_link"/><child link="arm_bl_link"/>
+    <origin xyz="-0.05 0.005 -0.05" rpy="0 0 0.785"/>
+  </joint>
+
+  <!-- FR motor + prop -->
+  <link name="motor_fr_link">
+    <visual><geometry><mesh filename="meshes/motor_fr.stl"/></geometry><material name="motor_silver"/></visual>
+    <inertial><mass value="0.03"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/></inertial>
+  </link>
+  <joint name="motor_fr_mount" type="fixed">
+    <parent link="arm_fr_link"/><child link="motor_fr_link"/>
+    <origin xyz="0.05 0.005 0" rpy="0 0 0"/>
+  </joint>
+  <link name="prop_fr_link">
+    <visual><geometry><mesh filename="meshes/prop_fr.stl"/></geometry><material name="prop_grey"/></visual>
+    <inertial><mass value="0.005"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="prop_fr_spin" type="continuous">
+    <parent link="motor_fr_link"/><child link="prop_fr_link"/>
+    <origin xyz="0 0.012 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- FL motor + prop -->
+  <link name="motor_fl_link">
+    <visual><geometry><mesh filename="meshes/motor_fl.stl"/></geometry><material name="motor_silver"/></visual>
+    <inertial><mass value="0.03"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/></inertial>
+  </link>
+  <joint name="motor_fl_mount" type="fixed">
+    <parent link="arm_fl_link"/><child link="motor_fl_link"/>
+    <origin xyz="-0.05 0.005 0" rpy="0 0 0"/>
+  </joint>
+  <link name="prop_fl_link">
+    <visual><geometry><mesh filename="meshes/prop_fl.stl"/></geometry><material name="prop_grey"/></visual>
+    <inertial><mass value="0.005"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="prop_fl_spin" type="continuous">
+    <parent link="motor_fl_link"/><child link="prop_fl_link"/>
+    <origin xyz="0 0.012 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- BR motor + prop -->
+  <link name="motor_br_link">
+    <visual><geometry><mesh filename="meshes/motor_br.stl"/></geometry><material name="motor_silver"/></visual>
+    <inertial><mass value="0.03"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/></inertial>
+  </link>
+  <joint name="motor_br_mount" type="fixed">
+    <parent link="arm_br_link"/><child link="motor_br_link"/>
+    <origin xyz="0.05 0.005 0" rpy="0 0 0"/>
+  </joint>
+  <link name="prop_br_link">
+    <visual><geometry><mesh filename="meshes/prop_br.stl"/></geometry><material name="prop_grey"/></visual>
+    <inertial><mass value="0.005"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="prop_br_spin" type="continuous">
+    <parent link="motor_br_link"/><child link="prop_br_link"/>
+    <origin xyz="0 0.012 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- BL motor + prop -->
+  <link name="motor_bl_link">
+    <visual><geometry><mesh filename="meshes/motor_bl.stl"/></geometry><material name="motor_silver"/></visual>
+    <inertial><mass value="0.03"/><inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/></inertial>
+  </link>
+  <joint name="motor_bl_mount" type="fixed">
+    <parent link="arm_bl_link"/><child link="motor_bl_link"/>
+    <origin xyz="-0.05 0.005 0" rpy="0 0 0"/>
+  </joint>
+  <link name="prop_bl_link">
+    <visual><geometry><mesh filename="meshes/prop_bl.stl"/></geometry><material name="prop_grey"/></visual>
+    <inertial><mass value="0.005"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="prop_bl_spin" type="continuous">
+    <parent link="motor_bl_link"/><child link="prop_bl_link"/>
+    <origin xyz="0 0.012 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- Landing gear -->
+  <link name="landing_gear_l_link">
+    <visual><geometry><mesh filename="meshes/landing_gear_l.stl"/></geometry><material name="rubber_dark"/></visual>
+    <inertial><mass value="0.01"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="landing_gear_l_joint" type="fixed">
+    <parent link="base_link"/><child link="landing_gear_l_link"/>
+    <origin xyz="-0.04 -0.018 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="landing_gear_r_link">
+    <visual><geometry><mesh filename="meshes/landing_gear_r.stl"/></geometry><material name="rubber_dark"/></visual>
+    <inertial><mass value="0.01"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="landing_gear_r_joint" type="fixed">
+    <parent link="base_link"/><child link="landing_gear_r_link"/>
+    <origin xyz="0.04 -0.018 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Camera gimbal -->
+  <link name="camera_link">
+    <visual><geometry><mesh filename="meshes/camera_gimbal.stl"/></geometry><material name="camera_black"/></visual>
+    <inertial><mass value="0.03"/><inertia ixx="0.000002" ixy="0" ixz="0" iyy="0.000002" iyz="0" izz="0.000002"/></inertial>
+  </link>
+  <joint name="camera_tilt" type="revolute">
+    <parent link="base_link"/><child link="camera_link"/>
+    <origin xyz="0 -0.018 0.035" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.5708" upper="0.3" effort="1" velocity="1.0"/>
+  </joint>
+
+  <!-- GPS module -->
+  <link name="gps_link">
+    <visual><geometry><mesh filename="meshes/gps_module.stl"/></geometry><material name="pcb_green"/></visual>
+    <inertial><mass value="0.01"/><inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/></inertial>
+  </link>
+  <joint name="gps_mount" type="fixed">
+    <parent link="base_link"/><child link="gps_link"/>
+    <origin xyz="0 0.022 -0.03" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Battery -->
+  <link name="battery_link">
+    <visual><geometry><mesh filename="meshes/battery.stl"/></geometry><material name="battery_blue"/></visual>
+    <inertial><mass value="0.15"/><inertia ixx="0.00005" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00005"/></inertial>
+  </link>
+  <joint name="battery_mount" type="fixed">
+    <parent link="base_link"/><child link="battery_link"/>
+    <origin xyz="0 -0.022 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>
