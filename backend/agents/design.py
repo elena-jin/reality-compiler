@@ -138,6 +138,7 @@ def _generate_heuristic(
             logger.info("Design agent: procedural URDF generated at %s", urdf_path)
     except Exception:
         logger.warning("Procedural compilation failed, falling back to archetype", exc_info=True)
+        robot_arch = None
         try:
             urdf_path, parametric_parts, topology = generate_urdf_for_prompt(prompt)
         except Exception:

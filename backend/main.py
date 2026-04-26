@@ -277,7 +277,7 @@ async def iterate(req: IterateRequest):
         assembly=assembly,
         feasibility=feasibility,
         arduino=arduino,
-        robot_architecture=robot_arch,
+        robot_architecture=robot_arch or previous.robot_architecture,
     )
 
     # Mubit memory: store iteration as new run linked to session
