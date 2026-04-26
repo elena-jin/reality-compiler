@@ -239,6 +239,46 @@ class RobotArchitecture(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Manufacturing / Shenzhen sourcing
+# ---------------------------------------------------------------------------
+
+class ManufacturingSupplier(BaseModel):
+    name: str
+    specialization: str = Field(description="e.g. CNC machining, PCB fabrication, injection molding")
+    best_use_case: str = Field(description="prototype | pcb | cnc | injection_molding | mass_production | assembly")
+    contact_method: str = Field(default="", description="Email, inquiry form, or WeChat")
+    appointment_required: bool = False
+    lead_time_prototype: str = Field(default="", description="e.g. 3-5 days")
+    lead_time_production: str = Field(default="", description="e.g. 2-4 weeks")
+    district: str = Field(default="", description="Shenzhen district: Huaqiangbei | Bao'an | Longgang | Nanshan")
+    moq: Optional[str] = Field(default=None, description="Minimum order quantity if applicable")
+
+
+class ProductInterpretation(BaseModel):
+    object_name: str
+    description: str = Field(description="One-sentence description of the physical product")
+    physical_form: str = Field(description="robot | device | hybrid | machine | gadget | tool")
+    key_features: list[str] = Field(default_factory=list, description="3-5 key features")
+    analogues: list[str] = Field(default_factory=list, description="Real-world product analogues for inspiration")
+    bom_categories: list[str] = Field(default_factory=list, description="Component categories: electronics, mechanical, structural, sensors, etc.")
+
+
+class RFQTemplate(BaseModel):
+    subject: str
+    body: str
+    target_supplier_type: str = Field(description="Which supplier type this RFQ is for")
+
+
+class ManufacturingPlan(BaseModel):
+    product_interpretation: ProductInterpretation
+    suppliers: list[ManufacturingSupplier] = Field(default_factory=list)
+    rfq_templates: list[RFQTemplate] = Field(default_factory=list)
+    estimated_prototype_cost_usd: float = Field(ge=0, default=0.0)
+    estimated_mass_production_cost_usd: float = Field(ge=0, default=0.0)
+    recommended_approach: str = Field(default="", description="Summary recommendation for the founder")
+
+
+# ---------------------------------------------------------------------------
 # Top-level generation result
 # ---------------------------------------------------------------------------
 
@@ -253,6 +293,7 @@ class GenerationResult(BaseModel):
     feasibility: FeasibilityReport
     arduino: Optional[ArduinoWiring] = Field(default=None, description="Arduino wiring and code for electronics projects")
     robot_architecture: Optional[RobotArchitecture] = Field(default=None, description="Generative robot architecture data")
+    manufacturing: Optional[ManufacturingPlan] = Field(default=None, description="Shenzhen manufacturing plan with suppliers and RFQ templates")
 
 
 # ---------------------------------------------------------------------------

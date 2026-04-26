@@ -1,4 +1,4 @@
-import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot, Cpu, Zap } from "lucide-react";
+import { Package, Link2, Wrench, ShieldCheck, AlertTriangle, ExternalLink, ChevronDown, ChevronUp, Factory, Layers, Ruler, GitBranch, Box, CircleDot, Cpu, Zap, MapPin, Mail, Clock, FileText, Globe } from "lucide-react";
 import { useState } from "react";
 
 function Card({ title, icon: Icon, children, visible, delay, defaultOpen = true }) {
@@ -340,6 +340,128 @@ function TopologyView({ topology }) {
   );
 }
 
+function ManufacturingCard({ manufacturing }) {
+  const [activeRfq, setActiveRfq] = useState(null);
+  if (!manufacturing) return null;
+  const { product_interpretation: pi, suppliers, rfq_templates } = manufacturing;
+  return (
+    <div className="rc-mfg">
+      <div className="rc-mfg-interp">
+        <div className="rc-mfg-name">{pi.object_name}</div>
+        <p className="rc-mfg-desc">{pi.description}</p>
+        <div className="rc-mfg-form-badge">
+          <Box size={10} />
+          <span>{pi.physical_form}</span>
+        </div>
+        {pi.key_features?.length > 0 && (
+          <div className="rc-mfg-features">
+            {pi.key_features.map((f, i) => (
+              <span key={i} className="rc-mfg-feature">{f}</span>
+            ))}
+          </div>
+        )}
+        {pi.analogues?.length > 0 && (
+          <div className="rc-mfg-analogues">
+            <span className="rc-eng-label">Analogues</span>
+            <span>{pi.analogues.join(" · ")}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="rc-mfg-costs">
+        <div className="rc-cost-row">
+          <span>Prototype cost (est.)</span>
+          <span className="rc-cost-value">${manufacturing.estimated_prototype_cost_usd?.toFixed(0)}</span>
+        </div>
+        <div className="rc-cost-row">
+          <span>Mass production unit cost</span>
+          <span className="rc-cost-value">${manufacturing.estimated_mass_production_cost_usd?.toFixed(0)}</span>
+        </div>
+      </div>
+
+      <div className="rc-mfg-suppliers">
+        <div className="rc-mfg-section-title">
+          <MapPin size={12} />
+          <span>Shenzhen Suppliers ({suppliers.length})</span>
+        </div>
+        {suppliers.map((s, i) => (
+          <div key={i} className="rc-mfg-supplier">
+            <div className="rc-mfg-supplier-header">
+              <span className="rc-mfg-supplier-name">{s.name}</span>
+              <span className="rc-mfg-use-badge">{s.best_use_case}</span>
+            </div>
+            <div className="rc-mfg-supplier-spec">{s.specialization}</div>
+            <div className="rc-mfg-supplier-details">
+              {s.district && (
+                <span className="rc-mfg-detail">
+                  <MapPin size={10} />
+                  {s.district}
+                </span>
+              )}
+              <span className="rc-mfg-detail">
+                <Mail size={10} />
+                {s.contact_method}
+              </span>
+              <span className="rc-mfg-detail">
+                <Clock size={10} />
+                Proto: {s.lead_time_prototype}
+              </span>
+              {s.moq && (
+                <span className="rc-mfg-detail">
+                  MOQ: {s.moq}
+                </span>
+              )}
+              {s.appointment_required && (
+                <span className="rc-mfg-appt">Appointment required</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {rfq_templates?.length > 0 && (
+        <div className="rc-mfg-rfqs">
+          <div className="rc-mfg-section-title">
+            <FileText size={12} />
+            <span>RFQ Templates</span>
+          </div>
+          {rfq_templates.map((rfq, i) => (
+            <div key={i} className="rc-mfg-rfq">
+              <button
+                className="rc-mfg-rfq-header"
+                onClick={() => setActiveRfq(activeRfq === i ? null : i)}
+                type="button"
+              >
+                <span>{rfq.subject}</span>
+                <span className="rc-mfg-rfq-type">{rfq.target_supplier_type}</span>
+              </button>
+              {activeRfq === i && (
+                <div className="rc-mfg-rfq-body">
+                  <pre>{rfq.body}</pre>
+                  <button
+                    className="rc-mfg-rfq-copy"
+                    onClick={() => navigator.clipboard.writeText(rfq.body)}
+                    type="button"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {manufacturing.recommended_approach && (
+        <div className="rc-mfg-recommendation">
+          <span className="rc-eng-label">Recommended Approach</span>
+          <p>{manufacturing.recommended_approach}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ResultsPanel({ result, loading, revealStage, error }) {
   const [bomTab, setBomTab] = useState("prototype");
 
@@ -527,6 +649,12 @@ export default function ResultsPanel({ result, loading, revealStage, error }) {
           )}
         </div>
       </Card>
+
+      {result.manufacturing && (
+        <Card title="Shenzhen Manufacturing" icon={Globe} visible={revealStage >= 7} delay={450} defaultOpen={false}>
+          <ManufacturingCard manufacturing={result.manufacturing} />
+        </Card>
+      )}
     </div>
   );
 }
