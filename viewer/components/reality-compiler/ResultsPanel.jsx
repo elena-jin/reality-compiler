@@ -228,6 +228,9 @@ function RobotArchCard({ arch }) {
         <span className="rc-arch-class">{arch.robot_class}</span>
         <span className="rc-arch-seed">seed: {arch.variation_seed}</span>
       </div>
+      {arch.base_archetype && (
+        <p className="rc-arch-archetype">{arch.base_archetype}</p>
+      )}
       <div className="rc-arch-parse">
         <div className="rc-arch-tag" style={{ borderColor: morphColors[cp.morphology] || "#6b7280" }}>
           <Cpu size={10} />
@@ -242,7 +245,14 @@ function RobotArchCard({ arch }) {
           <span>{cp.visual_style}</span>
         </div>
       </div>
-      {cp.summary && <p className="rc-arch-summary">{cp.summary}</p>}
+      {arch.style_modifiers?.length > 0 && (
+        <div className="rc-arch-modifiers">
+          {arch.style_modifiers.map((m, i) => (
+            <span key={i} className="rc-arch-modifier">{m.replace("_", " ")}</span>
+          ))}
+        </div>
+      )}
+      {cp.summary && !arch.base_archetype && <p className="rc-arch-summary">{cp.summary}</p>}
       {arch.parametric_geometry_rules?.length > 0 && (
         <div className="rc-arch-geo">
           <span className="rc-eng-label">Geometry Rules</span>

@@ -1,10 +1,14 @@
 """Procedural Robot Compiler — generative architecture engine.
 
-Converts any concept prompt into a unique robotic design with:
-1. Concept parsing (morphology, function, visual style)
-2. Procedural graph generation with variation
+CRITICAL RULE: Always preserve the identity of the input concept.
+"Baymax" must stay a soft inflatable humanoid healthcare robot.
+"Robot dog" must stay a quadruped. Variation only in proportions,
+joint placement, surface detail, material style — never core form.
+
+1. Named concept matching → fixed archetype identity
+2. Structural variation (±10-20% proportions only)
 3. Dynamic URDF with seeded randomness
-4. Geometry abstraction rules
+4. Geometry abstraction (capsules preferred over cylinders)
 5. X-ray internal structure
 """
 
@@ -28,13 +32,44 @@ logger = logging.getLogger("reality_compiler.robot_compiler")
 
 
 # ---------------------------------------------------------------------------
-# 1. Concept Parsing Layer
+# 1. Concept Parsing — IDENTITY PRESERVATION IS CRITICAL
 # ---------------------------------------------------------------------------
 
+# Named concept map: these are the canonical identities.
+# When a user says "Baymax", the output MUST be a soft inflatable humanoid.
+# Variation is ONLY allowed in proportions/joints/materials, never core form.
+
+_NAMED_CONCEPTS = {
+    # Healthcare / companion humanoids
+    "baymax": {"morphology": "humanoid", "function_role": "medical", "visual_style": "soft", "base_archetype": "Soft inflatable humanoid healthcare robot", "style_modifiers": ["soft", "round_body", "inflatable_vinyl", "white", "friendly_face"]},
+    "pepper": {"morphology": "humanoid", "function_role": "companion", "visual_style": "sleek", "base_archetype": "Social humanoid companion robot", "style_modifiers": ["sleek", "white_plastic", "tablet_chest", "wheeled_base"]},
+    "nao": {"morphology": "humanoid", "function_role": "education", "visual_style": "sleek", "base_archetype": "Small bipedal education robot", "style_modifiers": ["compact", "colorful", "walking_biped"]},
+    "atlas": {"morphology": "humanoid", "function_role": "exploration", "visual_style": "rugged", "base_archetype": "Heavy-duty bipedal dynamic robot", "style_modifiers": ["rugged", "hydraulic", "high_mobility"]},
+
+    # Quadrupeds
+    "spot": {"morphology": "quadruped", "function_role": "exploration", "visual_style": "mechanical", "base_archetype": "Agile quadruped inspection robot like Boston Dynamics Spot", "style_modifiers": ["mechanical", "yellow_body", "sensor_head"]},
+    "robot dog": {"morphology": "quadruped", "function_role": "companion", "visual_style": "mechanical", "base_archetype": "Quadruped mechanical animal robot", "style_modifiers": ["mechanical", "dog_proportions", "4_legs"]},
+    "dog robot": {"morphology": "quadruped", "function_role": "companion", "visual_style": "mechanical", "base_archetype": "Quadruped mechanical animal robot", "style_modifiers": ["mechanical", "dog_proportions", "4_legs"]},
+
+    # Arms
+    "lucid": {"morphology": "articulated_arm", "function_role": "lab", "visual_style": "sleek", "base_archetype": "Lucid-1 style 7-DOF articulated arm", "style_modifiers": ["sleek", "anodized_aluminum", "high_precision"]},
+    "cobot": {"morphology": "articulated_arm", "function_role": "industrial", "visual_style": "sleek", "base_archetype": "Collaborative industrial robot arm", "style_modifiers": ["sleek", "rounded_joints", "force_limited"]},
+    "ur5": {"morphology": "articulated_arm", "function_role": "industrial", "visual_style": "mechanical", "base_archetype": "Universal Robots UR5 style 6-DOF arm", "style_modifiers": ["mechanical", "blue_joints", "industrial"]},
+
+    # Hexapods
+    "spider robot": {"morphology": "hexapod", "function_role": "exploration", "visual_style": "biomechanical", "base_archetype": "Six-legged spider exploration robot", "style_modifiers": ["biomechanical", "low_profile", "terrain_adaptive"]},
+
+    # Aerials
+    "racing drone": {"morphology": "aerial", "function_role": "filming", "visual_style": "sleek", "base_archetype": "High-speed racing quadcopter", "style_modifiers": ["sleek", "carbon_fiber", "lightweight"]},
+
+    # Soft robots
+    "soft gripper": {"morphology": "soft_body", "function_role": "industrial", "visual_style": "soft", "base_archetype": "Pneumatic soft-body gripper", "style_modifiers": ["soft", "silicone", "pneumatic_actuation"]},
+}
+
 _MORPHOLOGY_KEYWORDS = {
-    "humanoid": ["humanoid", "biped", "human", "android", "baymax", "nao", "pepper"],
+    "humanoid": ["humanoid", "biped", "human", "android", "baymax", "nao", "pepper", "atlas", "walking robot"],
     "wheeled": ["wheeled", "rover", "car", "mobile", "vehicle", "tank", "line follower"],
-    "quadruped": ["quadruped", "dog", "spot", "four-leg", "4-leg", "walking", "boston dynamics"],
+    "quadruped": ["quadruped", "dog", "spot", "four-leg", "4-leg", "boston dynamics", "robot dog", "puppy"],
     "hexapod": ["hexapod", "spider", "six-leg", "6-leg", "insect", "ant"],
     "articulated_arm": ["arm", "7dof", "6dof", "manipulator", "cobot", "lucid", "pick and place", "industrial arm", "robot arm"],
     "soft_body": ["soft", "inflatable", "pneumatic", "silicone", "flexible", "tentacle"],
@@ -43,11 +78,11 @@ _MORPHOLOGY_KEYWORDS = {
 }
 
 _FUNCTION_KEYWORDS = {
-    "assistant": ["assistant", "helper", "companion", "service", "butler"],
-    "medical": ["medical", "healthcare", "surgical", "rehab", "prosthetic", "baymax"],
+    "assistant": ["assistant", "helper", "service", "butler"],
+    "medical": ["medical", "healthcare", "surgical", "rehab", "prosthetic", "nurse", "hospital"],
     "industrial": ["industrial", "factory", "manufacturing", "welding", "assembly", "cobot", "pick and place"],
-    "companion": ["companion", "pet", "social", "toy", "emotional", "cute"],
-    "exploration": ["exploration", "rover", "mars", "rescue", "inspection", "underwater"],
+    "companion": ["companion", "pet", "social", "toy", "emotional", "cute", "friend"],
+    "exploration": ["exploration", "rover", "mars", "rescue", "inspection", "underwater", "search"],
     "education": ["education", "teaching", "learning", "stem", "classroom", "demo"],
     "filming": ["filming", "camera", "vlog", "gimbal", "tracking", "cinematography"],
     "lab": ["lab", "laboratory", "research", "experiment", "testing", "scientific"],
@@ -55,11 +90,11 @@ _FUNCTION_KEYWORDS = {
 
 _STYLE_KEYWORDS = {
     "mechanical": ["mechanical", "industrial", "metal", "steel", "gear", "piston"],
-    "soft": ["soft", "round", "friendly", "cute", "plush", "inflatable"],
+    "soft": ["soft", "round", "friendly", "cute", "plush", "inflatable", "gentle"],
     "biomechanical": ["biomechanical", "organic", "alien", "exoskeleton", "biological"],
     "sleek": ["sleek", "modern", "futuristic", "minimal", "clean", "lucid"],
     "rugged": ["rugged", "military", "heavy", "armored", "tactical", "tough"],
-    "minimalist": ["minimalist", "simple", "elegant", "minimal", "zen"],
+    "minimalist": ["minimalist", "simple", "elegant", "zen"],
 }
 
 
@@ -73,18 +108,47 @@ def _classify(prompt: str, keyword_map: dict[str, list[str]], default: str) -> s
     return best
 
 
-def parse_concept(prompt: str) -> ConceptParse:
+def _match_named_concept(prompt: str) -> dict | None:
+    """Check if prompt matches a known named concept (identity preservation)."""
+    lp = prompt.lower()
+    best_match = None
+    best_len = 0
+    for name, identity in _NAMED_CONCEPTS.items():
+        if name in lp and len(name) > best_len:
+            best_match = identity
+            best_len = len(name)
+    return best_match
+
+
+def parse_concept(prompt: str) -> tuple[ConceptParse, str, list[str]]:
+    """Parse prompt into concept, returning (parse, base_archetype, style_modifiers).
+
+    Named concepts get identity-locked archetypes. Generic prompts get classified.
+    """
+    named = _match_named_concept(prompt)
+
+    if named:
+        base_archetype = named["base_archetype"]
+        style_modifiers = named["style_modifiers"]
+        return ConceptParse(
+            morphology=named["morphology"],
+            function_role=named["function_role"],
+            visual_style=named["visual_style"],
+            summary=base_archetype,
+        ), base_archetype, style_modifiers
+
     morphology = _classify(prompt, _MORPHOLOGY_KEYWORDS, "articulated_arm")
     function_role = _classify(prompt, _FUNCTION_KEYWORDS, "industrial")
     visual_style = _classify(prompt, _STYLE_KEYWORDS, "mechanical")
+    base_archetype = f"{visual_style.title()} {morphology.replace('_', ' ')} for {function_role} applications"
+    style_modifiers = [visual_style, morphology]
 
-    summary = f"{visual_style.title()} {morphology.replace('_', ' ')} for {function_role} applications"
     return ConceptParse(
         morphology=morphology,
         function_role=function_role,
         visual_style=visual_style,
-        summary=summary,
-    )
+        summary=base_archetype,
+    ), base_archetype, style_modifiers
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +163,8 @@ def _make_seed(prompt: str) -> int:
 
 
 def _seeded_range(rng: random.Random, base: float, variance: float) -> float:
+    """Vary base value by ±variance. For identity preservation, keep variance
+    at 10-20% of base so the core silhouette is recognizable."""
     return base + rng.uniform(-variance, variance)
 
 
@@ -338,10 +404,10 @@ _GRAPH_BUILDERS = {
 # ---------------------------------------------------------------------------
 
 _PRIM_MAP = {
-    "servo": "box", "motor": "cylinder", "bracket": "box", "link": "capsule",
-    "base": "box", "plate": "cylinder", "finger": "box", "propeller": "box",
+    "servo": "capsule", "motor": "cylinder", "bracket": "capsule", "link": "capsule",
+    "base": "box", "plate": "cylinder", "finger": "capsule", "propeller": "box",
     "wheel": "cylinder", "gear": "cylinder", "pcb": "box", "controller": "box",
-    "housing": "box", "sensor": "sphere", "battery": "box",
+    "housing": "capsule", "sensor": "sphere", "battery": "box",
 }
 
 _ROLE_MAP = {
@@ -403,9 +469,13 @@ def _build_xray(parts: list[dict]) -> list[dict]:
 # 4. Public API
 # ---------------------------------------------------------------------------
 
-def compile_robot(prompt: str) -> RobotArchitecture:
-    """Main entry: concept prompt → full robot architecture."""
-    concept = parse_concept(prompt)
+def compile_robot(prompt: str) -> tuple[RobotArchitecture, list[dict]]:
+    """Main entry: concept prompt → full robot architecture.
+
+    Identity preservation: named concepts (Baymax, Spot, etc.) lock to
+    fixed archetypes. Variation is ±10-20% proportions only, never core form.
+    """
+    concept, base_archetype, style_modifiers = parse_concept(prompt)
     seed = _make_seed(prompt)
     rng = random.Random(seed)
 
@@ -416,14 +486,16 @@ def compile_robot(prompt: str) -> RobotArchitecture:
     xray = _build_xray(parts)
 
     logger.info(
-        "Robot compiled: class=%s morphology=%s parts=%d seed=%d",
-        robot_class, concept.morphology, len(parts), seed,
+        "Robot compiled: class=%s archetype=%s morphology=%s parts=%d seed=%d",
+        robot_class, base_archetype, concept.morphology, len(parts), seed,
     )
 
     return RobotArchitecture(
         concept_parse=concept,
         robot_class=robot_class,
         variation_seed=seed,
+        base_archetype=base_archetype,
+        style_modifiers=style_modifiers,
         parametric_geometry_rules=[GeometryRule(**r) for r in geometry_rules],
         xray_internal_structure=[XRayComponent(**x) for x in xray],
     ), parts

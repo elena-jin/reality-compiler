@@ -1,52 +1,97 @@
 # Reality Compiler
 
-Hardware idea to prototype in 60 seconds.
+Turn ideas into real things you could actually build.
 
-Describe any product — get a 3D model, bill of materials, sourcing links, assembly steps, and feasibility check.
+Prompt -> 3D robot -> parts list -> cost -> build plan -> X-ray internals.
 
-## Quick Start
+---
 
-```bash
-# Backend
-cd backend && pip install -r requirements.txt && uvicorn backend.main:app --reload
+## Public Repo
 
-# Frontend
-cd viewer && npm install && npm run dev
-```
+https://github.com/elena-jin/reality-compiler
 
-Open [http://localhost:4178](http://localhost:4178).
+---
 
-## What It Does
+60-90 sec flow:
 
-- **3D URDF Models** — Engineering-grade parametric parts with real kinematics, not boxes
-- **Bill of Materials** — Real components with sourcing (Amazon UK, RS, Alibaba)
-- **Assembly** — Step-by-step build instructions + Arduino wiring
-- **Feasibility** — Cost estimates, risk assessment, manufacturing readiness
-- **Engineering Specs** — Exact dimensions (mm), materials, connection points, STEP/STL/DXF export definitions
-- **Topology Graph** — Part connection map with joint types and degrees of freedom
-- **X-Ray Mode** — See internal structure: motors, joints, wiring paths, frame
+idea -> robot -> BOM -> X-ray mode -> "make it cheaper" -> updated design
 
-## Architecture
+---
 
-```
-backend/
-  main.py          — FastAPI server
-  agents/          — Design, BOM, Sourcing, Feasibility, Arduino
-  urdf_generator.py — Parametric URDF + STL generation
-  schemas.py       — Pydantic validation for all outputs
-viewer/
-  components/reality-compiler/  — React + Three.js frontend
-```
+## What we used (no fluff)
 
-## Integrations
+### Built with:
 
-- **Pydantic Logfire** — Structured observability for every generation stage
-- **Mubit SDK** — Design memory for iteration ("make it cheaper")
+- LLMs for structured robot + product generation
 
-## Deploy
+- Three.js for real-time 3D rendering
 
-```bash
-fly deploy
-```
+- Pydantic (strict AI outputs so nothing breaks)
 
-Live at [reality-compiler-taejuaku.fly.dev](https://reality-compiler-taejuaku.fly.dev/)
+- Mubit (memory + iterative design improvements)
+
+- Devin API (agent that refines and improves designs)
+
+- URDF-style robot structure generation (simulated kinematics)
+
+---
+
+## What we did NOT use
+
+- No CAD engine (Fusion / SolidWorks etc.)
+
+- No physics simulation
+
+- No real supplier APIs
+
+- No prebuilt robot templates
+
+Everything is generated dynamically.
+
+---
+
+## Live App
+
+https://reality-compiler-taejuaku.fly.dev/
+
+---
+
+## What it does
+
+You type:
+
+> "Baymax healthcare robot"
+
+We return:
+
+- 3D interactive robot
+
+- internal X-ray structure
+
+- bill of materials (what to buy)
+
+- cost estimate (prototype vs scale)
+
+- assembly steps
+
+- editable improvements over time
+
+---
+
+## Why it matters
+
+Right now:
+
+- ideas are cheap
+
+- prototyping is slow + expensive
+
+We flip that:
+
+> idea -> buildable hardware in under 60 seconds
+
+---
+
+## One-liner
+
+> "We built a compiler for physical reality."

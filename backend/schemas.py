@@ -231,6 +231,8 @@ class XRayComponent(BaseModel):
 class RobotArchitecture(BaseModel):
     concept_parse: ConceptParse
     robot_class: str = Field(default="", description="Generated class name, e.g. 'Lucid-7DOF-Arm'")
+    base_archetype: str = Field(default="", description="Identity-locked archetype description, e.g. 'Soft inflatable humanoid healthcare robot'")
+    style_modifiers: list[str] = Field(default_factory=list, description="Visual/material style tags: soft, round_body, inflatable_vinyl, etc.")
     variation_seed: int = Field(default=0)
     parametric_geometry_rules: list[GeometryRule] = Field(default_factory=list)
     xray_internal_structure: list[XRayComponent] = Field(default_factory=list)
