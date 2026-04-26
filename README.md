@@ -1,83 +1,163 @@
-<div align="center">
+# Reality Compiler
 
-<img src="assets/text-to-cad-demo.gif" alt="Demo of the text-to-cad harness generating and previewing CAD geometry" width="100%">
+**Type an idea. Get a real thing you can build.**
 
-<br>
+Reality Compiler turns any prompt — text or image — into a **manufacturable physical object** with:
 
-# ⚙ Open Source Text to CAD Harness ⚙
+- 3D model (web-rendered)
+- internal structure (X-ray mode)
+- bill of materials (BOM)
+- sourcing plan (prototype → Shenzhen scale)
+- assembly instructions
 
-An open source harness for generating 3D models with your favorite coding agent
+---
 
-[![GitHub stars](https://img.shields.io/github/stars/earthtojake/text-to-cad?style=for-the-badge&logo=github&label=Stars)](https://github.com/earthtojake/text-to-cad/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/earthtojake/text-to-cad?style=for-the-badge&logo=github&label=Forks)](https://github.com/earthtojake/text-to-cad/network/members)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Follow @soft_servo](https://img.shields.io/badge/Follow-%40soft__servo-000000?style=for-the-badge&logo=x)](https://x.com/soft_servo)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](requirements-cad.txt)
-[![build123d](https://img.shields.io/badge/build123d-CAD-00A676?style=for-the-badge)](https://github.com/gumyr/build123d)
-[![OCP](https://img.shields.io/badge/OCP-OpenCascade-2F80ED?style=for-the-badge)](requirements-cad.txt)
-[![STEP](https://img.shields.io/badge/STEP-Export-4A5568?style=for-the-badge)](skills/cad/SKILL.md)
-[![STL](https://img.shields.io/badge/STL-Export-4A5568?style=for-the-badge)](skills/cad/SKILL.md)
-[![URDF](https://img.shields.io/badge/URDF-Robots-6B46C1?style=for-the-badge)](skills/urdf/SKILL.md)
-[![Node.js](https://img.shields.io/badge/Node.js-Viewer-339933?style=for-the-badge&logo=node.js&logoColor=white)](viewer/package.json)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=111111)](viewer/package.json)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite&logoColor=white)](viewer/package.json)
+## 🚀 What it does
 
-</div>
+You type something like:
 
-## ✨ Features
+- “robot baymax”
+- “robot dog”
+- “banana therapist”
+- “flying desk companion”
 
-- **Generate** - Create source-controlled CAD models with coding agents like Codex and Claude Code.
-- **Export** - Produce STEP, STL, DXF, GLB, topology data, and URDF robot descriptions.
-- **Browse** - Inspect generated geometry in a local CAD Explorer viewer.
-- **Reference** - Copy stable `@cad[...]` references so agents can make precise follow-up edits.
-- **Review** - Render quick snapshots for fast checks during an iteration loop.
-- **Reproduce** - Edit source files first, then regenerate explicit targets.
-- **Local** - Run the harness and viewer locally with no backend to host.
+And it generates:
 
-## 🧰 Bundled Skills
+### 1. Concept → Physical Object
+A structured interpretation of what the object *is* physically.
 
-This harness vendors file-targeted skills for CAD and robot-description work. Use the bundled copies here for local `models/` projects, or use the dedicated repositories when installing the skills outside this harness.
+### 2. 3D Model
+Real-time render of a buildable form (Three.js primitives + composition).
 
-- **CAD Skill** - STEP, STL, DXF, GLB/topology, snapshots, and `@cad[...]` geometry references. [Bundled docs](skills/cad/README.md) · [Standalone repo](https://github.com/earthtojake/cad-skill)
-- **URDF Skill** - Generated URDF XML, robot links, joints, limits, validation, and mesh references. [Bundled docs](skills/urdf/README.md) · [Standalone repo](https://github.com/earthtojake/urdf-skill)
+### 3. Engineering Breakdown
+- components (motors, sensors, casing, structure)
+- dimensions
+- material suggestions
 
-## 🔁 Workflow
+### 4. Manufacturing Plan
+- prototype sourcing (fast / local)
+- Shenzhen mass production path
+- cost estimates (prototype vs scale)
 
-1. **Describe** - Tell your agent about the part, assembly, fixture, robot, or mechanism you want.
-2. **Edit** - Let your coding agent update CAD source files under `models/`.
-3. **Regenerate** - Create explicit STEP, STL, DXF, GLB, or URDF targets.
-4. **Inspect** - Open the CAD Explorer viewer to review the generated model.
-5. **Reference** - Copy `@cad[...]` handles when you want geometry-aware edits.
-6. **Commit** - Save the source and generated artifacts together once the model is ready.
+### 5. Assembly Instructions
+Step-by-step how a human would actually build it.
 
-## 🚀 Quick Start
+### 6. X-Ray Mode
+Peek inside the object to understand internal structure and mechanics.
 
-Clone the repo:
+---
 
-```bash
-git clone https://github.com/earthtojake/text-to-cad.git
-cd text-to-cad
-```
+## 🧠 Core Idea
 
-Install Python CAD dependencies:
+This is not a 3D generator.
 
-```bash
-python3.11 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
-./.venv/bin/pip install -r requirements-cad.txt
-```
+It is a **compiler from language → physical reality**.
 
-Install viewer dependencies:
+---
 
-```bash
-cd viewer
-npm install
-```
+## 🏗️ How it works
 
-Run the local CAD Explorer:
+### Step 1 — World Constructor
+Any input (even nonsense) is converted into a plausible physical product.
 
-```bash
-npm run dev
-```
+### Step 2 — Structure Generator
+The idea is converted into a robot / device graph:
+- body
+- parts
+- joints
+- function
 
-Then open [http://localhost:4178](http://localhost:4178).
+### Step 3 — Rendering Engine
+The structure is visualised using modular 3D primitives.
+
+### Step 4 — Manufacturing Layer
+The system outputs:
+- BOM
+- sourcing categories
+- production pipeline (prototype → Shenzhen scale)
+
+---
+
+## 🌍 Why it exists
+
+Building hardware today is broken:
+
+- CAD is slow
+- sourcing is fragmented
+- iteration cycles take weeks
+- prototyping is expensive
+
+Reality Compiler compresses:
+
+> idea → prototype-ready design → sourcing plan
+
+into **under 60 seconds**.
+
+---
+
+## 🎯 Target users
+
+- hardware startups
+- robotics builders
+- indie engineers
+- students / makers
+- prototyping labs
+
+---
+
+## 🧪 Example
+
+Input:
+> “robot labubu”
+
+Output:
+- playful companion robot design
+- soft humanoid structure with modular limbs
+- BOM with servos + casing + sensors
+- prototype cost vs Shenzhen mass production cost
+- assembly steps
+- X-ray internal layout
+
+---
+
+## ⚙️ Tech stack
+
+- LLM structured generation
+- Three.js procedural rendering
+- schema-validated outputs (Pydantic-style)
+- agentic refinement loop (Devin API)
+- memory / iteration system (design evolution)
+- manufacturing mapping engine (Shenzhen supplier classes)
+
+---
+
+## 🔁 Iteration loop
+
+Users can refine in real time:
+
+- “make it cheaper”
+- “make it smaller”
+- “make it stronger”
+- “make it more humanoid”
+
+System regenerates design under constraints instantly.
+
+---
+
+## 🧩 Key insight
+
+Every physical product starts the same way:
+
+> an idea in language
+
+Reality Compiler is the missing layer between imagination and manufacturing.
+
+---
+
+## 🏁 Vision
+
+A world where:
+
+> typing an idea is equivalent to starting production
+
+---
